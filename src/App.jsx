@@ -129,7 +129,7 @@ const MOCK_NEWS = [
   }
 ];
 
-// Helper sinh tin tức tự động
+// Hàm sinh tin tức tự động
 const generateAutoNews = () => {
   const now = new Date();
   return {
@@ -154,7 +154,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [prices, setPrices] = useState(INITIAL_PRICES);
   const [news, setNews] = useState(MOCK_NEWS);
-  const [visibleNewsCount, setVisibleNewsCount] = useState(3); // Trạng thái hiển thị số lượng tin
+  const [visibleNewsCount, setVisibleNewsCount] = useState(3);
   const [bookmarks, setBookmarks] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -166,19 +166,34 @@ export default function App() {
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState(null);
 
-  // --- 1. Load Supabase via Script ---
+  // --- 1. Load External Scripts (Tailwind CSS & Supabase) ---
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
-    script.async = true;
-    script.onload = () => {
-      if (supabaseUrl && supabaseKey && window.supabase) {
-        const client = window.supabase.createClient(supabaseUrl, supabaseKey);
-        setSupabaseClient(client);
-      }
-    };
-    document.head.appendChild(script);
-  }, []);
+    // Inject Tailwind CSS để đảm bảo giao diện luôn hiển thị chính xác mọi nơi
+    if (!document.getElementById('tailwind-script')) {
+      const twScript = document.createElement('script');
+      twScript.id = 'tailwind-script';
+      twScript.src = "https://cdn.tailwindcss.com";
+      document.head.appendChild(twScript);
+    }
+
+    // Inject Supabase JS Client
+    if (!document.getElementById('supabase-script')) {
+      const sbScript = document.createElement('script');
+      sbScript.id = 'supabase-script';
+      sbScript.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+      sbScript.async = true;
+      sbScript.onload = () => {
+        if (supabaseUrl && supabaseKey && window.supabase) {
+          const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+          setSupabaseClient(client);
+        }
+      };
+      document.head.appendChild(sbScript);
+    } else if (window.supabase && supabaseUrl && supabaseKey && !supabaseClient) {
+      const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+      setSupabaseClient(client);
+    }
+  }, [supabaseClient]);
 
   // --- 2. Auth & Setup ---
   useEffect(() => {
@@ -226,6 +241,7 @@ export default function App() {
     return () => { supabaseClient.removeChannel(channel); };
   }, [supabaseClient, user]);
 
+  // Tự động chuyển slide cho News
   useEffect(() => {
     if (activeTab === 'news' && !selectedItem) {
       const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % HOT_NEWS.length), 4000);
@@ -233,13 +249,12 @@ export default function App() {
     }
   }, [activeTab, selectedItem]);
 
-  // --- Auto update news every 1 hour ---
+  // Auto update news every 1 hour
   useEffect(() => {
     const ONE_HOUR = 60 * 60 * 1000;
     const interval = setInterval(() => {
       setNews(prevNews => [generateAutoNews(), ...prevNews]);
     }, ONE_HOUR);
-    
     return () => clearInterval(interval);
   }, []);
 
@@ -248,14 +263,11 @@ export default function App() {
     setTimeout(() => setToast(null), 2500);
   };
 
-  // --- SỬA LỖI NÚT LOAD BẢNG GIÁ ---
   const handleRefresh = async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
     
-    // Tạo dữ liệu mới để giả lập biến động giá
     const currentPrices = prices || INITIAL_PRICES;
-    
     const newDomestic = (currentPrices.domestic || []).map(p => ({
       ...p,
       price: p.price + (Math.floor(Math.random() * 401) - 200),
@@ -278,11 +290,10 @@ export default function App() {
       }
     };
 
-    // Nếu chưa cấu hình Supabase, chỉ cập nhật trên UI Local
     if (!supabaseClient) {
       setPrices(updatedPrices);
       setLastUpdate(new Date().toLocaleTimeString());
-      showToast("Đã cập nhật giá (Chế độ Local) ✨");
+      showToast("Đã cập nhật giá (Local Mode) ✨");
       setTimeout(() => setIsRefreshing(false), 800);
       return;
     }
@@ -296,8 +307,6 @@ export default function App() {
       if (error) throw error;
       showToast("Đã cập nhật bảng giá ✨");
     } catch (e) { 
-      console.error("Refresh Error:", e);
-      // Nếu lỗi mạng, vẫn update giao diện cho người dùng
       setPrices(updatedPrices);
       setLastUpdate(new Date().toLocaleTimeString());
       showToast("Lỗi đồng bộ, đã cập nhật Local"); 
@@ -307,9 +316,16 @@ export default function App() {
   };
 
   const toggleBookmark = async (id) => {
-    if (!supabaseClient || !user) return;
+    if (!user) return;
     const isBookmarked = bookmarks.includes(id);
     const next = isBookmarked ? bookmarks.filter(b => b !== id) : [...bookmarks, id];
+    
+    if (!supabaseClient) {
+      setBookmarks(next);
+      showToast(isBookmarked ? "Đã gỡ lưu (Local)" : "Đã lưu tin (Local) ✨");
+      return;
+    }
+
     try {
       const { error } = await supabaseClient.from('user_profiles').update({ bookmarks: next }).eq('user_id', user.id);
       if (error) throw error;
@@ -320,10 +336,7 @@ export default function App() {
 
   // --- Gemini Logic ---
   const handleAiMarketAnalysis = async () => {
-    if (!apiKey) {
-      showToast("Vui lòng cấu hình Gemini API Key");
-      return;
-    }
+    if (!apiKey) { showToast("Vui lòng cấu hình Gemini API Key"); return; }
     setIsAiAnalyzing(true);
     setAiAnalysisResult(null);
     try {
@@ -338,9 +351,9 @@ export default function App() {
   };
 
   const handleAiSummarizeNews = async (newsItem) => {
+    if (!apiKey) { showToast("Vui lòng cấu hình Gemini API Key"); return; }
     setIsAiAnalyzing(true);
     try {
-      // Extract text content from the new structured format
       const contentText = Array.isArray(newsItem.content) 
         ? newsItem.content.map(block => typeof block === 'string' ? block : block.text).join(' ') 
         : '';
@@ -356,6 +369,7 @@ export default function App() {
   };
 
   const handleAiPredictTrend = async (priceItem) => {
+    if (!apiKey) { showToast("Vui lòng cấu hình Gemini API Key"); return; }
     setIsAiAnalyzing(true);
     try {
       const prompt = `Phân tích lịch sử giá vùng ${priceItem.province || priceItem.market}: ${priceItem.history.join(', ')}. Giá hiện tại: ${priceItem.price}. Với xu hướng ${priceItem.trend}, hãy dự báo giá trong 3 ngày tới và đưa ra 1 hành động cụ thể ✨. Trả lời thật ngắn gọn.`;
@@ -368,17 +382,36 @@ export default function App() {
     }
   };
 
-  // --- Rendering Helpers ---
+  // --- Fixed Sparkline SVG ---
   const renderSparkline = (history = [], isNegative) => {
     if (!history || history.length < 2) return null;
     const min = Math.min(...history);
     const max = Math.max(...history);
     const range = (max - min) || 1;
-    const points = history.map((d, i) => `${(i * 35)} ${40 - ((d - min) / range) * 30}`).join(' ');
+    
+    const width = 64;
+    const height = 32;
+    const strokeWidth = 2.5;
+    
+    const points = history.map((d, i) => {
+      const x = (i / (history.length - 1)) * (width - strokeWidth * 2) + strokeWidth;
+      const y = height - (((d - min) / range) * (height - strokeWidth * 2)) - strokeWidth;
+      return `${x},${y}`;
+    }).join(' ');
+
     return (
-      <svg className="w-16 h-8 overflow-visible" viewBox="0 0 210 50">
-        <polyline fill="none" stroke={isNegative ? "#ef4444" : "#10b981"} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" points={points} />
-      </svg>
+      <div className="w-16 h-8 shrink-0 flex items-center justify-center">
+        <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} className="overflow-visible block">
+          <polyline 
+            fill="none" 
+            stroke={isNegative ? "#ef4444" : "#10b981"} 
+            strokeWidth={strokeWidth} 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            points={points} 
+          />
+        </svg>
+      </div>
     );
   };
 
@@ -607,7 +640,7 @@ export default function App() {
   const NewsView = () => (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20 px-1">
       <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 flex gap-4 items-start shadow-sm">
-        <div className="bg-amber-500 p-2.5 rounded-2xl text-white shadow-md shadow-amber-200">
+        <div className="bg-amber-500 p-2.5 rounded-2xl text-white shadow-md shadow-amber-200 shrink-0">
           <FileText size={20} />
         </div>
         <div>
@@ -623,10 +656,13 @@ export default function App() {
         <div className="flex h-full transition-transform duration-700 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
           {HOT_NEWS.map((hot) => (
             <div key={hot.id} className={`min-w-full ${hot.color} p-6 text-white relative flex flex-col justify-center`}>
-              <h3 className="text-emerald-400 font-black text-[10px] uppercase tracking-widest mb-1">{hot.tag}</h3>
-              <p className="text-lg font-bold leading-tight mb-4 pr-16">{hot.title}</p>
-              <button className="flex items-center gap-2 text-[10px] font-black bg-white/10 px-4 py-2 rounded-full w-fit uppercase border border-white/10">Đọc nhanh <ArrowRight size={14} /></button>
-              <div className="absolute right-[-10px] bottom-[-10px] opacity-10">{getHotIcon(hot.type)}</div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span>
+                <h3 className="text-emerald-400 font-black text-[10px] uppercase tracking-widest">{hot.tag}</h3>
+              </div>
+              <p className="text-lg font-bold leading-tight mb-4 pr-16 relative z-10">{hot.title}</p>
+              <button className="flex items-center gap-2 text-[10px] font-black bg-white/10 px-4 py-2 rounded-full w-fit uppercase border border-white/10 relative z-10 hover:bg-white/20 transition-all">Đọc nhanh <ArrowRight size={14} /></button>
+              <div className="absolute right-[-10px] bottom-[-10px] opacity-10 pointer-events-none">{getHotIcon(hot.type)}</div>
             </div>
           ))}
         </div>
@@ -678,12 +714,12 @@ export default function App() {
     const isNews = selectedItem.type === 'news';
     return (
       <div className="fixed inset-0 z-[100] bg-white overflow-y-auto animate-in slide-in-from-bottom duration-300">
-        <div className="max-w-md mx-auto min-h-screen bg-white pb-20">
+        <div className="max-w-md mx-auto min-h-screen bg-white pb-20 shadow-2xl">
           <header className="sticky top-0 bg-white/80 backdrop-blur-md p-6 flex justify-between items-center z-10 border-b border-stone-50">
             <button onClick={() => setSelectedItem(null)} className="p-2.5 bg-stone-100 rounded-2xl text-stone-600 active:scale-90 transition-all"><ChevronLeft size={20} /></button>
             <div className="flex gap-2">
               {isNews && (
-                <button onClick={() => toggleBookmark(selectedItem.id)} className={`p-2.5 rounded-2xl transition-all ${bookmarks.includes(selectedItem.id) ? 'bg-emerald-500 text-white shadow-lg' : 'bg-stone-100 text-stone-600'}`}>
+                <button onClick={() => toggleBookmark(selectedItem.id)} className={`p-2.5 rounded-2xl transition-all ${bookmarks.includes(selectedItem.id) ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200' : 'bg-stone-100 text-stone-600'}`}>
                   <Bookmark size={20} fill={bookmarks.includes(selectedItem.id) ? "white" : "none"} />
                 </button>
               )}
@@ -693,8 +729,20 @@ export default function App() {
           <main className="px-6 py-6 space-y-8">
             {isNews ? (
               <>
-                <img src={selectedItem.image} className="w-full h-56 object-cover rounded-[3rem] shadow-sm" alt="" />
-                <h1 className="text-2xl font-black text-stone-900 leading-tight">{selectedItem.title}</h1>
+                <div className="relative">
+                   <img src={selectedItem.image} className="w-full h-64 object-cover rounded-[3rem] shadow-xl" alt="" />
+                   <div className="absolute -bottom-4 right-8 bg-white px-6 py-3 rounded-2xl shadow-lg border border-stone-50">
+                      <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Tác giả</p>
+                      <p className="text-xs font-bold text-stone-900">{selectedItem.author}</p>
+                   </div>
+                </div>
+                <div className="flex gap-3 items-center text-[10px] font-black text-stone-400 uppercase pt-4">
+                  <span className="bg-emerald-100 text-emerald-600 px-4 py-1.5 rounded-full">{selectedItem.category}</span>
+                  <span>{selectedItem.readTime}</span>
+                  <span>•</span>
+                  <span>{selectedItem.time}</span>
+                </div>
+                <h1 className="text-3xl font-black text-stone-900 leading-tight">{selectedItem.title}</h1>
                 
                 <button 
                   onClick={() => handleAiSummarizeNews(selectedItem)}
@@ -715,12 +763,10 @@ export default function App() {
 
                 <div className="mt-8 space-y-6">
                   {selectedItem.content?.map((block, i) => {
-                    // Fallback for simple string array
                     if (typeof block === 'string') {
                       return <p key={i} className="text-[15px] text-stone-700 leading-loose font-medium">{block}</p>;
                     }
                     
-                    // Render based on block type
                     switch (block.type) {
                       case 'lead':
                         return <p key={i} className="text-base text-stone-900 leading-relaxed font-bold">{block.text}</p>;
@@ -858,8 +904,8 @@ export default function App() {
             <p className="text-[9px] text-emerald-600 font-black tracking-widest uppercase">Gemini AI Enhanced ✨</p>
           </div>
         </div>
-        <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden p-1">
-          <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || 'guest'}`} className="bg-stone-50 rounded-xl" alt="Profile" />
+        <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden p-1 shrink-0">
+          <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || 'guest'}`} className="w-full h-full object-cover bg-stone-50 rounded-xl" alt="Profile" />
         </div>
       </header>
 
