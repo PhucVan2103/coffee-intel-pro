@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 // --- Gemini API Setup ---
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;  
 
 const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân tích thị trường cà phê Việt Nam và thế giới.", isJson = false) => {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
@@ -263,29 +263,21 @@ export default function App() {
     return () => authListener.subscription.unsubscribe();
   }, [supabaseClient]);
 
-  // --- Fetch Data & Realtime ---
+  // --- Fetch Data & Realtime (Gộp chung vào ID='latest') ---
   useEffect(() => {
     if (!supabaseClient || !user) return;
     const fetchInitialData = async () => {
-      // 1. Lấy dữ liệu Bảng Giá
       const { data: mData, error: mError } = await supabaseClient.from('market_data').select('*').eq('id', 'latest').single();
       if (!mError && mData) {
         setPrices(mData.prices_json);
+        if (mData.prices_json.news) setNews(mData.prices_json.news);
+        if (mData.prices_json.hotNews) setHotNews(mData.prices_json.hotNews);
         setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
       } else if (mError?.code === 'PGRST116') {
-        await supabaseClient.from('market_data').upsert({ id: 'latest', prices_json: INITIAL_PRICES });
+        const initData = { ...INITIAL_PRICES, news: MOCK_NEWS, hotNews: INITIAL_HOT_NEWS };
+        await supabaseClient.from('market_data').upsert({ id: 'latest', prices_json: initData });
       }
 
-      // 2. Lấy dữ liệu Tin Tức từ DB
-      const { data: nData, error: nError } = await supabaseClient.from('market_data').select('*').eq('id', 'news').single();
-      if (!nError && nData && nData.prices_json) {
-        if (nData.prices_json.news) setNews(nData.prices_json.news);
-        if (nData.prices_json.hotNews) setHotNews(nData.prices_json.hotNews);
-      } else if (nError?.code === 'PGRST116') {
-        await supabaseClient.from('market_data').upsert({ id: 'news', prices_json: { news: MOCK_NEWS, hotNews: INITIAL_HOT_NEWS } });
-      }
-
-      // 3. Lấy Bookmarks
       const { data: uData, error: uError } = await supabaseClient.from('user_profiles').select('bookmarks').eq('user_id', user.id).single();
       if (!uError && uData) setBookmarks(uData.bookmarks || []);
       else if (uError?.code === 'PGRST116') {
@@ -295,17 +287,13 @@ export default function App() {
 
     fetchInitialData();
 
-    // 4. Lắng nghe thay đổi Realtime cho cả bảng giá và tin tức
     const channel = supabaseClient.channel('market-updates')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'market_data' }, payload => {
-        if (payload.new) {
-          if (payload.new.id === 'latest' && payload.new.prices_json) {
-            setPrices(payload.new.prices_json);
-            setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
-          } else if (payload.new.id === 'news' && payload.new.prices_json) {
-            if (payload.new.prices_json.news) setNews(payload.new.prices_json.news);
-            if (payload.new.prices_json.hotNews) setHotNews(payload.new.prices_json.hotNews);
-          }
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'market_data', filter: 'id=eq.latest' }, payload => {
+        if (payload.new && payload.new.prices_json) {
+          setPrices(payload.new.prices_json);
+          if (payload.new.prices_json.news) setNews(payload.new.prices_json.news);
+          if (payload.new.prices_json.hotNews) setHotNews(payload.new.prices_json.hotNews);
+          setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
         }
       }).subscribe();
 
@@ -335,17 +323,20 @@ export default function App() {
     const INTERVAL_TIME = 10 * 60 * 1000; 
     const interval = setInterval(() => {
       const newArticle = generateAutoNews();
-      const updatedNews = [newArticle, ...newsRef.current].slice(0, 30); // Giữ tối đa 30 tin trong DB để tránh nặng
+      
+      // KIỂM TRA TRÙNG LẶP: Bỏ qua nếu tin đã tồn tại (dựa vào tiêu đề)
+      const isDuplicate = newsRef.current.some(n => n.title.trim().toLowerCase() === newArticle.title.trim().toLowerCase());
+      if (isDuplicate) return;
+
+      const updatedNews = [newArticle, ...newsRef.current].slice(0, 30);
       
       setNews(updatedNews);
       setVisibleNewsCount(prev => prev + 1);
 
-      // Lưu tin tự động sinh xuống DB
+      // LƯU DB VÀO 'latest' ĐỂ BẢO ĐẢM KHÔNG BỊ CHẶN BỞI RLS
       if (supabaseClient) {
-        supabaseClient.from('market_data').upsert({
-          id: 'news',
-          prices_json: { news: updatedNews, hotNews: hotNewsRef.current }
-        });
+        const updatedData = { ...pricesRef.current, news: updatedNews, hotNews: hotNewsRef.current };
+        supabaseClient.from('market_data').update({ prices_json: updatedData }).eq('id', 'latest');
       }
     }, INTERVAL_TIME);
     return () => clearInterval(interval);
@@ -356,16 +347,19 @@ export default function App() {
     const ONE_HOURS = 1 * 60 * 60 * 1000; 
     const interval = setInterval(() => {
       const newHot = generateAutoHotNews();
+
+      // KIỂM TRA TRÙNG LẶP
+      const isDuplicate = hotNewsRef.current.some(h => h.title.trim().toLowerCase() === newHot.title.trim().toLowerCase());
+      if (isDuplicate) return;
+
       const updatedHotNews = [newHot, ...hotNewsRef.current.slice(0, 2)];
       
       setHotNews(updatedHotNews);
 
-      // Lưu tin nóng xuống DB
+      // LƯU DB VÀO 'latest'
       if (supabaseClient) {
-        supabaseClient.from('market_data').upsert({
-          id: 'news',
-          prices_json: { news: newsRef.current, hotNews: updatedHotNews }
-        });
+        const updatedData = { ...pricesRef.current, news: newsRef.current, hotNews: updatedHotNews };
+        supabaseClient.from('market_data').update({ prices_json: updatedData }).eq('id', 'latest');
       }
     }, ONE_HOURS);
     return () => clearInterval(interval);
@@ -387,6 +381,8 @@ export default function App() {
       const { data, error } = await supabaseClient.from('market_data').select('*').eq('id', 'latest').single();
       if (!error && data) {
         setPrices(data.prices_json);
+        if (data.prices_json.news) setNews(data.prices_json.news);
+        if (data.prices_json.hotNews) setHotNews(data.prices_json.hotNews);
         setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
       }
     }
@@ -432,10 +428,31 @@ export default function App() {
         time: 'Vừa xong',
         image: `https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&q=80&w=800&sig=${Date.now()}`
       };
+      
+      // KIỂM TRA TRÙNG LẶP CHO TIN AI VIẾT
+      const isDuplicate = newsRef.current.some(n => 
+        n.title.trim().toLowerCase() === newArticle.title.trim().toLowerCase() ||
+        n.summary.trim().toLowerCase() === newArticle.summary.trim().toLowerCase()
+      );
+
+      if (isDuplicate) {
+        showToast("Bản tin mới bị trùng lặp nội dung, đã tự động hủy bỏ ✨");
+        setIsRefreshingNews(false);
+        return;
+      }
+
       showToast("Đã bổ sung bài phân tích mới ✨");
     } catch (e) {
       console.warn("Lỗi tạo tin AI, dùng Local");
       newArticle = generateAutoNews();
+      
+      const isDuplicate = newsRef.current.some(n => n.title.trim() === newArticle.title.trim());
+      if (isDuplicate) {
+        showToast("Không tìm thấy tin tức mới, đã giữ nguyên bảng tin ✨");
+        setIsRefreshingNews(false);
+        return;
+      }
+      
       showToast("Đã tải bài phân tích (Local) ✨");
     }
 
@@ -443,13 +460,11 @@ export default function App() {
     setNews(updatedNews);
     setVisibleNewsCount(prev => prev + 1);
 
-    // LƯU TIN TỨC MỚI VÀO DATABASE
+    // LƯU TIN TỨC VÀO DB
     if (supabaseClient) {
       try {
-        await supabaseClient.from('market_data').upsert({
-          id: 'news',
-          prices_json: { news: updatedNews, hotNews: hotNewsRef.current }
-        });
+        const updatedData = { ...pricesRef.current, news: updatedNews, hotNews: hotNewsRef.current };
+        await supabaseClient.from('market_data').update({ prices_json: updatedData }).eq('id', 'latest');
       } catch (err) {
         console.error("Lỗi đồng bộ DB", err);
       }
@@ -478,7 +493,14 @@ export default function App() {
       const newGlobal = (currentPrices.global || []).map(g => ({
         ...g, price: g.price + parseFloat(((Math.random() * 10) - 5).toFixed(2)), change: Math.floor(Math.random() * 100) - 50
       }));
-      return { ...currentPrices, domestic: newDomestic, global: newGlobal, aiInsights: { ...currentPrices.aiInsights, sentimentScore: Math.floor(Math.random() * 100) } };
+      return { 
+        ...currentPrices, 
+        domestic: newDomestic, 
+        global: newGlobal, 
+        aiInsights: { ...currentPrices.aiInsights, sentimentScore: Math.floor(Math.random() * 100) },
+        news: newsRef.current,
+        hotNews: hotNewsRef.current
+      };
     };
 
     if (!apiKey) {
@@ -512,7 +534,9 @@ export default function App() {
           ...currentPrices, 
           domestic: newDomestic, 
           global: newGlobal, 
-          aiInsights: { ...currentPrices.aiInsights, ...realData.aiInsights } 
+          aiInsights: { ...currentPrices.aiInsights, ...realData.aiInsights },
+          news: newsRef.current,
+          hotNews: hotNewsRef.current
         };
       } catch (e) {
         console.warn("Dùng dữ liệu dự phòng do lỗi/chậm lấy giá thực tế.");
@@ -964,7 +988,6 @@ export default function App() {
     if (!selectedItem) return null;
     const isNews = selectedItem.type === 'news';
     
-    // Đã cấu trúc lại Layout Modal để không bao giờ bị cắt nền trắng dù màn hình dài ngắn ra sao
     return (
       <div className="fixed inset-0 z-[100] bg-stone-900/60 backdrop-blur-sm flex justify-center animate-in fade-in duration-200">
         <div className="w-full max-w-md h-full overflow-y-auto bg-white shadow-2xl relative animate-in slide-in-from-bottom-8 duration-300 flex flex-col">
