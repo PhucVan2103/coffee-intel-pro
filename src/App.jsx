@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 // --- Gemini API Setup ---
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
+const apiKey = = import.meta.env.VITE_GEMINI_API_KEY; 
 
 const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân tích thị trường cà phê Việt Nam và thế giới.", isJson = false) => {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
