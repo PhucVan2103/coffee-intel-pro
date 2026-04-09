@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 // --- Gemini API Setup ---
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;  
 
 const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân tích thị trường cà phê Việt Nam và thế giới.", isJson = false) => {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
@@ -222,19 +222,15 @@ export default function App() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [toast, setToast] = useState(null);
   
-  // Use a ref to always access the latest prices inside async functions
   const pricesRef = useRef(prices);
   useEffect(() => {
     pricesRef.current = prices;
   }, [prices]);
 
-  // --- Gemini Specific States ---
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState(null);
 
-  // --- 1. Load External Scripts (Tailwind CSS & Supabase) ---
   useEffect(() => {
-    // Inject Tailwind CSS để đảm bảo giao diện luôn hiển thị chính xác mọi nơi
     if (!document.getElementById('tailwind-script')) {
       const twScript = document.createElement('script');
       twScript.id = 'tailwind-script';
@@ -242,7 +238,6 @@ export default function App() {
       document.head.appendChild(twScript);
     }
 
-    // Inject Supabase JS Client
     if (!document.getElementById('supabase-script')) {
       const sbScript = document.createElement('script');
       sbScript.id = 'supabase-script';
@@ -261,7 +256,6 @@ export default function App() {
     }
   }, [supabaseClient]);
 
-  // --- 2. Auth & Setup ---
   useEffect(() => {
     if (!supabaseClient) return;
     const initAuth = async () => {
@@ -279,7 +273,6 @@ export default function App() {
     return () => authListener.subscription.unsubscribe();
   }, [supabaseClient]);
 
-  // --- 3. Data Sync ---
   useEffect(() => {
     if (!supabaseClient || !user) return;
     const fetchInitialData = async () => {
@@ -307,22 +300,17 @@ export default function App() {
     return () => { supabaseClient.removeChannel(channel); };
   }, [supabaseClient, user]);
 
-  // --- 4. Auto Fetch Real Data on First Load ---
   const hasAutoFetched = useRef(false);
   useEffect(() => {
     const isSupabaseReady = (supabaseUrl && supabaseKey) ? supabaseClient !== null : true;
-    
-    // Nếu có API Key và chưa auto fetch bao giờ thì kích hoạt lấy dữ liệu thực tế
     if (!hasAutoFetched.current && apiKey && isSupabaseReady) {
       hasAutoFetched.current = true;
-      // Delay 1.5s để UI khởi tạo xong rồi mới load ngầm
       setTimeout(() => {
         handleRefresh(true);
       }, 1500);
     }
   }, [supabaseClient]);
 
-  // Tự động chuyển slide cho News
   useEffect(() => {
     if (activeTab === 'news' && !selectedItem) {
       const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % hotNews.length), 4000);
@@ -330,42 +318,58 @@ export default function App() {
     }
   }, [activeTab, selectedItem, hotNews.length]);
 
-  // Auto update news
   useEffect(() => {
-    // TẠM CHỈNH THÀNH 15 GIÂY ĐỂ BẠN DỄ TEST (15 * 1000).
-    // Khi chạy thực tế, hãy đổi lại thành 1 giờ (60 * 60 * 1000).
-    const INTERVAL_TIME = 30 * 60 * 1000; 
-    
+    const INTERVAL_TIME = 10 * 60 * 1000; 
     const interval = setInterval(() => {
       setNews(prevNews => [generateAutoNews(), ...prevNews]);
-      
-      // Tăng giới hạn số lượng tin đang hiển thị thêm 1
-      // Để tin mới chèn lên đầu không làm ẩn mất tin cũ ở dưới cùng
       setVisibleNewsCount(prevCount => prevCount + 1);
-      
     }, INTERVAL_TIME);
-    
     return () => clearInterval(interval);
   }, []);
 
-  // Auto update hot news every 2 hours
   useEffect(() => {
     const TWO_HOURS = 2 * 60 * 60 * 1000; 
-    
     const interval = setInterval(() => {
       setHotNews(prev => {
         const newHot = generateAutoHotNews();
-        // Cập nhật tin mới nhất lên đầu, giữ lại 2 tin cũ (tổng cộng luôn là 3 tin)
         return [newHot, ...prev.slice(0, 2)];
       });
     }, TWO_HOURS);
-    
     return () => clearInterval(interval);
   }, []);
 
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
+  };
+
+  // --- Handle Tab Switch and Auto Refresh ---
+  const handleTabChange = async (tab) => {
+    if (activeTab !== tab) {
+      setActiveTab(tab);
+      setSelectedItem(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    showToast(`Đang cập nhật dữ liệu mới nhất...`);
+    
+    if (supabaseClient) {
+      const { data, error } = await supabaseClient.from('market_data').select('*').eq('id', 'latest').single();
+      if (!error && data) {
+        setPrices(data.prices_json);
+        setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
+      }
+    } else {
+      // Local refresh fallback
+      const currentPrices = pricesRef.current || INITIAL_PRICES;
+      const newDomestic = (currentPrices.domestic || []).map(p => ({
+        ...p, 
+        price: p.price + (Math.floor(Math.random() * 200) - 100),
+        change: Math.floor(Math.random() * 400) - 200
+      }));
+      setPrices({ ...currentPrices, domestic: newDomestic });
+      setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
+    }
   };
 
   const handleRefresh = async (isAutoLoad = false) => {
@@ -442,9 +446,8 @@ export default function App() {
       }
     }
 
-    // LUÔN LUÔN cập nhật giao diện ngay lập tức để người dùng không phải chờ đợi
     setPrices(updatedPrices);
-    setLastUpdate(new Date().toLocaleTimeString());
+    setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
 
     if (!supabaseClient) {
       if (!isAutoLoad) showToast("Đã cập nhật giá dự phòng (Local) ✨");
@@ -791,7 +794,7 @@ export default function App() {
 
   const NewsView = () => (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20 px-1">
-      <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 flex gap-4 items-start shadow-sm">
+      <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 flex gap-4 items-start shadow-sm relative z-10">
         <div className="bg-amber-500 p-2.5 rounded-2xl text-white shadow-md shadow-amber-200 shrink-0">
           <FileText size={20} />
         </div>
@@ -804,7 +807,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="relative overflow-hidden rounded-[2.5rem] group h-44 shadow-xl border border-stone-100">
+      <div className="relative overflow-hidden rounded-[2.5rem] group h-44 shadow-xl border border-stone-100 z-10">
         <div className="flex h-full transition-transform duration-700 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
           {hotNews.map((hot) => (
             <div key={hot.id} className={`min-w-full ${hot.color} p-6 text-white relative flex flex-col justify-center`}>
@@ -825,7 +828,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 relative z-10">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-black text-stone-900">Tin Tức Mới Nhất</h2>
           <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{news.length} Bản tin</span>
@@ -871,8 +874,8 @@ export default function App() {
     const isNews = selectedItem.type === 'news';
     return (
       <div className="fixed inset-0 z-[100] bg-white overflow-y-auto animate-in slide-in-from-bottom duration-300">
-        <div className="max-w-md mx-auto min-h-screen bg-white pb-20 shadow-2xl">
-          <header className="sticky top-0 bg-white/80 backdrop-blur-md p-6 flex justify-between items-center z-10 border-b border-stone-50">
+        <div className="max-w-md mx-auto min-h-screen bg-white pb-20 shadow-2xl relative">
+          <header className="sticky top-0 bg-white/80 backdrop-blur-md p-6 flex justify-between items-center z-20 border-b border-stone-50">
             <button onClick={() => setSelectedItem(null)} className="p-2.5 bg-stone-100 rounded-2xl text-stone-600 active:scale-90 transition-all"><ChevronLeft size={20} /></button>
             <div className="flex gap-2">
               {isNews && (
@@ -883,7 +886,7 @@ export default function App() {
               <button className="p-2.5 bg-stone-100 rounded-2xl text-stone-600"><Share2 size={20} /></button>
             </div>
           </header>
-          <main className="px-6 py-6 space-y-8">
+          <main className="px-6 py-6 space-y-8 relative z-10 bg-white min-h-full">
             {isNews ? (
               <>
                 <div className="relative">
@@ -1066,22 +1069,22 @@ export default function App() {
         </div>
       </header>
 
-      <main className="px-8 pt-6 pb-28">
+      <main className="px-8 pt-6 pb-28 relative z-10">
         {activeTab === 'dashboard' ? <DashboardView /> : activeTab === 'brazil' ? <BrazilView /> : <NewsView />}
       </main>
 
       <DetailOverlay />
 
       <nav className="fixed bottom-8 left-8 right-8 h-20 bg-white/90 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-white/50 flex items-center justify-around px-4 z-50 max-w-sm mx-auto">
-        <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'dashboard' ? 'text-emerald-600 scale-110' : 'text-stone-300'}`}>
+        <button onClick={() => handleTabChange('dashboard')} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'dashboard' ? 'text-emerald-600 scale-110' : 'text-stone-300'}`}>
           <div className={`p-2 rounded-xl ${activeTab === 'dashboard' ? 'bg-emerald-50' : ''}`}><BarChart3 size={24} /></div>
           <span className="text-[8px] font-black uppercase tracking-tighter">Giá cả</span>
         </button>
-        <button onClick={() => setActiveTab('brazil')} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'brazil' ? 'text-emerald-600 scale-110' : 'text-stone-300'}`}>
+        <button onClick={() => handleTabChange('brazil')} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'brazil' ? 'text-emerald-600 scale-110' : 'text-stone-300'}`}>
           <div className={`p-2 rounded-xl ${activeTab === 'brazil' ? 'bg-emerald-50' : ''}`}><Globe size={24} /></div>
           <span className="text-[8px] font-black uppercase tracking-tighter">Brazil</span>
         </button>
-        <button onClick={() => setActiveTab('news')} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'news' ? 'text-emerald-600 scale-110' : 'text-stone-300'}`}>
+        <button onClick={() => handleTabChange('news')} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'news' ? 'text-emerald-600 scale-110' : 'text-stone-300'}`}>
           <div className={`p-2 rounded-xl ${activeTab === 'news' ? 'bg-emerald-50' : ''}`}><Newspaper size={24} /></div>
           <span className="text-[8px] font-black uppercase tracking-tighter">Tin tức</span>
         </button>
