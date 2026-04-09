@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 // --- Gemini API Setup ---
-cconst apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
 
 const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân tích thị trường cà phê Việt Nam và thế giới.", isJson = false) => {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
@@ -47,10 +47,40 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // --- Dữ liệu khởi tạo ---
-const HOT_NEWS = [
-  { id: 'h1', title: 'Brazil dự báo sản lượng niên vụ mới giảm 5% do khô hạn', tag: 'TIN NÓNG AI', type: 'alert', color: 'bg-stone-900' },
-  { id: 'h2', title: 'Giá Robusta đạt đỉnh 15 năm trên sàn London sáng nay', tag: 'CẢNH BÁO GIÁ', type: 'trending', color: 'bg-emerald-900' },
-  { id: 'h3', title: 'Cảng Santos (Brazil) đình công gây tắc nghẽn vận tải', tag: 'LOGISTICS', type: 'globe', color: 'bg-blue-900' }
+const INITIAL_HOT_NEWS = [
+  { 
+    id: 'h1', title: 'Brazil dự báo sản lượng niên vụ mới giảm 5% do khô hạn', tag: 'TIN NÓNG AI', type: 'alert', color: 'bg-stone-900',
+    author: 'AI System', readTime: '3 phút đọc', time: 'Vừa cập nhật', category: 'Cảnh báo', image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&q=80&w=800',
+    content: [
+      { type: 'lead', text: 'Hệ thống AI vừa phát hiện rủi ro thời tiết cực đoan tại Brazil, dự báo có thể làm giảm 5% sản lượng cà phê niên vụ tới.' },
+      { type: 'paragraph', text: 'Theo các số liệu vệ tinh mới nhất, độ ẩm đất tại khu vực vành đai trồng cà phê Minas Gerais đã giảm xuống mức thấp kỷ lục trong vòng 5 năm qua. Tình trạng nắng nóng kéo dài đang gây sức ép nghiêm trọng lên sự phát triển của quả cà phê non.' },
+      { type: 'subheading', text: 'Tác động tức thì đến thị trường' },
+      { type: 'paragraph', text: 'Thông tin này ngay lập tức làm dấy lên làn sóng lo ngại trên các sàn giao dịch quốc tế. Nhiều quỹ đầu cơ đã bắt đầu chuyển hướng dòng vốn, gia tăng vị thế mua vào để phòng ngừa rủi ro thiếu hụt nguồn cung.' },
+      { type: 'quote', text: 'Mức giảm 5% tại Brazil tương đương với việc bốc hơi hàng triệu bao cà phê khỏi thị trường toàn cầu. Điều này chắc chắn sẽ tạo đà hỗ trợ vững chắc cho giá cà phê trong trung hạn.', author: 'Nhận định từ AI' }
+    ]
+  },
+  { 
+    id: 'h2', title: 'Giá Robusta đạt đỉnh 15 năm trên sàn London sáng nay', tag: 'CẢNH BÁO GIÁ', type: 'trending', color: 'bg-emerald-900',
+    author: 'Market Bot', readTime: '2 phút đọc', time: '1 giờ trước', category: 'Thị trường', image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&q=80&w=800',
+    content: [
+      { type: 'lead', text: 'Sáng nay, giá cà phê Robusta trên sàn London đã chính thức phá vỡ cột mốc lịch sử, đạt mức cao nhất trong vòng 15 năm qua.' },
+      { type: 'paragraph', text: 'Động lực chính của đợt tăng giá điên cuồng này đến từ lực mua đầu cơ mạnh mẽ ngay từ những phút đầu mở phiên. Báo cáo tồn kho trên sàn tiếp tục sụt giảm, dấy lên hồi chuông cảnh báo về khả năng cạn kiệt nguồn cung hàng thực.' },
+      { type: 'subheading', text: 'Việt Nam giữ vai trò quyết định' },
+      { type: 'paragraph', text: 'Trong bối cảnh nguồn cung từ Indonesia và Brazil đều gặp vấn đề, mọi sự chú ý đang đổ dồn về Việt Nam. Tuy nhiên, lượng hàng trong dân không còn nhiều, trong khi các đại lý nội địa vẫn đang giữ tâm lý găm hàng chờ giá lên cao hơn nữa.' },
+      { type: 'quote', text: 'Thị trường đang ở trạng thái "Vắt trượt" (Backwardation) nghiêm trọng. Người mua sẵn sàng trả bất cứ giá nào để có được hàng giao ngay.', author: 'Chuyên gia giao dịch phái sinh' }
+    ]
+  },
+  { 
+    id: 'h3', title: 'Cảng Santos (Brazil) đình công gây tắc nghẽn vận tải', tag: 'LOGISTICS', type: 'globe', color: 'bg-blue-900',
+    author: 'Logistics AI', readTime: '3 phút đọc', time: '2 giờ trước', category: 'Chuỗi cung ứng', image: 'https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&q=80&w=800',
+    content: [
+      { type: 'lead', text: 'Cuộc đình công bất ngờ tại cảng Santos (Brazil) - cảng xuất khẩu cà phê lớn nhất thế giới - đang đẩy chuỗi cung ứng toàn cầu vào tình trạng báo động đỏ.' },
+      { type: 'paragraph', text: 'Hiệp hội Công nhân bốc xếp tại cảng đã tuyên bố ngừng việc để yêu cầu tăng lương và cải thiện điều kiện làm việc. Hàng nghìn container cà phê đang chịu cảnh nằm chờ tại bãi, không thể bốc lên tàu.' },
+      { type: 'subheading', text: 'Hệ lụy khôn lường' },
+      { type: 'paragraph', text: 'Dự kiến, thời gian giao hàng cho các hợp đồng tháng tới sẽ bị chậm trễ ít nhất 2 đến 3 tuần. Sự cố logistics này tạo ra một "khoảng trống" nguồn cung tạm thời tại các thị trường tiêu thụ lớn như châu Âu và Mỹ.' },
+      { type: 'paragraph', text: 'Đối với cà phê Việt Nam, đây là một tin tức mang tính hỗ trợ mạnh. Các nhà rang xay có thể sẽ phải tăng cường mua hàng Robusta từ Việt Nam để bù đắp sự thiếu hụt nguyên liệu cục bộ này.' }
+    ]
+  }
 ];
 
 const INITIAL_PRICES = {
@@ -153,12 +183,37 @@ const generateAutoNews = () => {
   };
 };
 
+const generateAutoHotNews = () => {
+  const now = new Date();
+  const types = ['alert', 'trending', 'globe'];
+  const colors = ['bg-stone-900', 'bg-emerald-900', 'bg-blue-900'];
+  const randIdx = Math.floor(Math.random() * 3);
+  return {
+    id: `hot_${now.getTime()}`,
+    category: 'TIN NÓNG',
+    title: `Cập nhật thị trường nóng lúc ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`,
+    tag: 'TIN NÓNG AI',
+    type: types[randIdx],
+    color: colors[randIdx],
+    author: 'AI Monitor',
+    readTime: '2 phút đọc',
+    time: 'Vừa xong',
+    image: `https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&q=80&w=800&sig=${now.getTime() + 1}`,
+    content: [
+      { type: 'lead', text: `Hệ thống AI vừa quét và ghi nhận những biến động bất thường của dòng tiền trên thị trường vào lúc ${now.toLocaleTimeString('vi-VN')}.` },
+      { type: 'paragraph', text: "Theo phân tích thuật toán, các chỉ số kỹ thuật đang cho thấy sự thay đổi đột ngột trong tâm lý giao dịch của các quỹ đầu tư lớn. Khối lượng giao dịch tăng đột biến ở các hợp đồng kỳ hạn gần." },
+      { type: 'quote', text: "Chúng tôi khuyến nghị các nhà đầu tư và người nông dân nên theo dõi sát sao diễn biến trong 2-3 phiên giao dịch tiếp theo trước khi đưa ra quyết định chốt lời số lượng lớn.", author: "Hệ thống Cảnh báo AI" }
+    ]
+  };
+};
+
 export default function App() {
   const [supabaseClient, setSupabaseClient] = useState(null);
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [prices, setPrices] = useState(INITIAL_PRICES);
   const [news, setNews] = useState(MOCK_NEWS);
+  const [hotNews, setHotNews] = useState(INITIAL_HOT_NEWS);
   const [visibleNewsCount, setVisibleNewsCount] = useState(3);
   const [bookmarks, setBookmarks] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -270,10 +325,10 @@ export default function App() {
   // Tự động chuyển slide cho News
   useEffect(() => {
     if (activeTab === 'news' && !selectedItem) {
-      const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % HOT_NEWS.length), 4000);
+      const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % hotNews.length), 4000);
       return () => clearInterval(timer);
     }
-  }, [activeTab, selectedItem]);
+  }, [activeTab, selectedItem, hotNews.length]);
 
   // Auto update news
   useEffect(() => {
@@ -289,6 +344,21 @@ export default function App() {
       setVisibleNewsCount(prevCount => prevCount + 1);
       
     }, INTERVAL_TIME);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Auto update hot news every 2 hours
+  useEffect(() => {
+    const TWO_HOURS = 2 * 60 * 60 * 1000; 
+    
+    const interval = setInterval(() => {
+      setHotNews(prev => {
+        const newHot = generateAutoHotNews();
+        // Cập nhật tin mới nhất lên đầu, giữ lại 2 tin cũ (tổng cộng luôn là 3 tin)
+        return [newHot, ...prev.slice(0, 2)];
+      });
+    }, TWO_HOURS);
     
     return () => clearInterval(interval);
   }, []);
@@ -311,59 +381,65 @@ export default function App() {
     let currentPrices = pricesRef.current || INITIAL_PRICES;
     let updatedPrices = { ...currentPrices };
 
-    try {
-      if (!apiKey) throw new Error("Chưa cấu hình API Key, chuyển sang chế độ Local");
-
-      const prompt = `Hãy tìm kiếm trên Internet giá cà phê thực tế mới nhất hôm nay tại Việt Nam và thế giới (London, New York).
-      Trích xuất dữ liệu và trả về đúng định dạng JSON này (CHỈ TRẢ VỀ JSON, KHÔNG CÓ BẤT KỲ TEXT NÀO KHÁC):
-      {
-        "domestic": [
-          {"id": "daklak", "price": <giá số nguyên VD: 105000>, "change": <số chênh lệch so với hôm qua>, "trend": "Bullish/Bearish/Neutral", "analysis": "Nhận định ngắn từ tin tức mới nhất"},
-          {"id": "lamdong", "price": <số>, "change": <số>, "trend": "...", "analysis": "..."},
-          {"id": "gialai", "price": <số>, "change": <số>, "trend": "...", "analysis": "..."},
-          {"id": "daknong", "price": <số>, "change": <số>, "trend": "...", "analysis": "..."}
-        ],
-        "global": [
-          {"id": "london", "price": <số USD>, "change": <số>, "trend": "...", "analysis": "..."},
-          {"id": "newyork", "price": <số Cent>, "change": <số>, "trend": "...", "analysis": "..."}
-        ],
-        "aiInsights": {
-          "marketSentiment": "Tên xu hướng ngắn gọn",
-          "sentimentScore": <điểm 0-100>,
-          "summary": "Tóm tắt thị trường hôm nay dựa trên dữ liệu thực tế"
-        }
-      }`;
-      
-      const jsonStr = await callGeminiAPI(prompt, "Bạn là bot lấy dữ liệu thực tế mới nhất.", true);
-      const realData = JSON.parse(jsonStr);
-
-      const newDomestic = currentPrices.domestic.map(old => {
-        const fresh = realData.domestic?.find(d => d.id === old.id) || {};
-        const newPrice = fresh.price || old.price;
-        return { ...old, ...fresh, history: [...old.history.slice(1), newPrice] };
-      });
-
-      const newGlobal = currentPrices.global.map(old => {
-        const fresh = realData.global?.find(g => g.id === old.id) || {};
-        const newPrice = fresh.price || old.price;
-        return { ...old, ...fresh, history: [...old.history.slice(1), newPrice] };
-      });
-
-      updatedPrices = { 
-        ...currentPrices, 
-        domestic: newDomestic, 
-        global: newGlobal, 
-        aiInsights: { ...currentPrices.aiInsights, ...realData.aiInsights } 
-      };
-    } catch (e) {
-      console.error("Lỗi lấy dữ liệu thực tế, dùng dữ liệu dự phòng:", e);
+    const generateFallbackData = () => {
       const newDomestic = (currentPrices.domestic || []).map(p => ({
         ...p, price: p.price + (Math.floor(Math.random() * 401) - 200), change: Math.floor(Math.random() * 800) - 400
       }));
       const newGlobal = (currentPrices.global || []).map(g => ({
         ...g, price: g.price + parseFloat(((Math.random() * 10) - 5).toFixed(2)), change: Math.floor(Math.random() * 100) - 50
       }));
-      updatedPrices = { ...currentPrices, domestic: newDomestic, global: newGlobal, aiInsights: { ...currentPrices.aiInsights, sentimentScore: Math.floor(Math.random() * 100) } };
+      return { ...currentPrices, domestic: newDomestic, global: newGlobal, aiInsights: { ...currentPrices.aiInsights, sentimentScore: Math.floor(Math.random() * 100) } };
+    };
+
+    if (!apiKey) {
+      updatedPrices = generateFallbackData();
+    } else {
+      try {
+        const prompt = `Hãy tìm kiếm trên Internet giá cà phê thực tế mới nhất hôm nay tại Việt Nam và thế giới (London, New York).
+        Trích xuất dữ liệu và trả về đúng định dạng JSON này (CHỈ TRẢ VỀ JSON, KHÔNG CÓ BẤT KỲ TEXT NÀO KHÁC):
+        {
+          "domestic": [
+            {"id": "daklak", "price": <giá số nguyên VD: 105000>, "change": <số chênh lệch so với hôm qua>, "trend": "Bullish/Bearish/Neutral", "analysis": "Nhận định ngắn từ tin tức mới nhất"},
+            {"id": "lamdong", "price": <số>, "change": <số>, "trend": "...", "analysis": "..."},
+            {"id": "gialai", "price": <số>, "change": <số>, "trend": "...", "analysis": "..."},
+            {"id": "daknong", "price": <số>, "change": <số>, "trend": "...", "analysis": "..."}
+          ],
+          "global": [
+            {"id": "london", "price": <số USD>, "change": <số>, "trend": "...", "analysis": "..."},
+            {"id": "newyork", "price": <số Cent>, "change": <số>, "trend": "...", "analysis": "..."}
+          ],
+          "aiInsights": {
+            "marketSentiment": "Tên xu hướng ngắn gọn",
+            "sentimentScore": <điểm 0-100>,
+            "summary": "Tóm tắt thị trường hôm nay dựa trên dữ liệu thực tế"
+          }
+        }`;
+        
+        const jsonStr = await callGeminiAPI(prompt, "Bạn là bot lấy dữ liệu thực tế mới nhất.", true);
+        const realData = JSON.parse(jsonStr);
+
+        const newDomestic = currentPrices.domestic.map(old => {
+          const fresh = realData.domestic?.find(d => d.id === old.id) || {};
+          const newPrice = fresh.price || old.price;
+          return { ...old, ...fresh, history: [...old.history.slice(1), newPrice] };
+        });
+
+        const newGlobal = currentPrices.global.map(old => {
+          const fresh = realData.global?.find(g => g.id === old.id) || {};
+          const newPrice = fresh.price || old.price;
+          return { ...old, ...fresh, history: [...old.history.slice(1), newPrice] };
+        });
+
+        updatedPrices = { 
+          ...currentPrices, 
+          domestic: newDomestic, 
+          global: newGlobal, 
+          aiInsights: { ...currentPrices.aiInsights, ...realData.aiInsights } 
+        };
+      } catch (e) {
+        console.warn("Dùng dữ liệu dự phòng do chưa lấy được giá thực tế.");
+        updatedPrices = generateFallbackData();
+      }
     }
 
     // LUÔN LUÔN cập nhật giao diện ngay lập tức để người dùng không phải chờ đợi
@@ -730,14 +806,19 @@ export default function App() {
 
       <div className="relative overflow-hidden rounded-[2.5rem] group h-44 shadow-xl border border-stone-100">
         <div className="flex h-full transition-transform duration-700 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
-          {HOT_NEWS.map((hot) => (
+          {hotNews.map((hot) => (
             <div key={hot.id} className={`min-w-full ${hot.color} p-6 text-white relative flex flex-col justify-center`}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span>
                 <h3 className="text-emerald-400 font-black text-[10px] uppercase tracking-widest">{hot.tag}</h3>
               </div>
-              <p className="text-lg font-bold leading-tight mb-4 pr-16 relative z-10">{hot.title}</p>
-              <button className="flex items-center gap-2 text-[10px] font-black bg-white/10 px-4 py-2 rounded-full w-fit uppercase border border-white/10 relative z-10 hover:bg-white/20 transition-all">Đọc nhanh <ArrowRight size={14} /></button>
+              <p className="text-lg font-bold leading-tight mb-4 pr-16 relative z-10 line-clamp-2">{hot.title}</p>
+              <button 
+                onClick={() => setSelectedItem({ ...hot, type: 'news' })}
+                className="flex items-center gap-2 text-[10px] font-black bg-white/10 px-4 py-2 rounded-full w-fit uppercase border border-white/10 relative z-10 hover:bg-white/20 transition-all cursor-pointer"
+              >
+                Đọc nhanh <ArrowRight size={14} />
+              </button>
               <div className="absolute right-[-10px] bottom-[-10px] opacity-10 pointer-events-none">{getHotIcon(hot.type)}</div>
             </div>
           ))}
