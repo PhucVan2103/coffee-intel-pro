@@ -271,12 +271,14 @@ export default function App() {
   const handleRefresh = async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
-    showToast("Đang tìm kiếm giá thực tế trên Internet...");
+    showToast(apiKey ? "Đang tìm kiếm giá thực tế trên Internet..." : "Đang làm mới giá (Chế độ Local)...");
     
     let currentPrices = prices || INITIAL_PRICES;
     let updatedPrices = { ...currentPrices };
 
     try {
+      if (!apiKey) throw new Error("Chưa cấu hình API Key, chuyển sang chế độ Local");
+
       const prompt = `Hãy tìm kiếm trên Internet giá cà phê thực tế mới nhất hôm nay tại Việt Nam và thế giới (London, New York).
       Trích xuất dữ liệu và trả về đúng định dạng JSON này (CHỈ TRẢ VỀ JSON, KHÔNG CÓ BẤT KỲ TEXT NÀO KHÁC):
       {
@@ -329,10 +331,12 @@ export default function App() {
       updatedPrices = { ...currentPrices, domestic: newDomestic, global: newGlobal, aiInsights: { ...currentPrices.aiInsights, sentimentScore: Math.floor(Math.random() * 100) } };
     }
 
+    // LUÔN LUÔN cập nhật giao diện ngay lập tức để người dùng không phải chờ đợi
+    setPrices(updatedPrices);
+    setLastUpdate(new Date().toLocaleTimeString());
+
     if (!supabaseClient) {
-      setPrices(updatedPrices);
-      setLastUpdate(new Date().toLocaleTimeString());
-      showToast("Đã cập nhật giá thực tế (Local) ✨");
+      showToast("Đã cập nhật giá dự phòng (Local) ✨");
       setIsRefreshing(false);
       return;
     }
@@ -344,11 +348,9 @@ export default function App() {
         .eq('id', 'latest');
       
       if (error) throw error;
-      showToast("Đã cập nhật bảng giá ✨");
+      showToast("Đã đồng bộ lên máy chủ ✨");
     } catch (e) { 
-      setPrices(updatedPrices);
-      setLastUpdate(new Date().toLocaleTimeString());
-      showToast("Lỗi đồng bộ, cập nhật Local"); 
+      showToast("Lỗi đồng bộ, chỉ cập nhật Local"); 
     } finally { 
       setIsRefreshing(false); 
     }
