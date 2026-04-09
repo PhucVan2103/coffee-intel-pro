@@ -37,9 +37,14 @@ const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân
       
       let text = result.candidates?.[0]?.content?.parts?.[0]?.text;
       
-      // Làm sạch chuỗi JSON nếu AI trả về kèm các dấu backticks markdown
+      // Làm sạch chuỗi JSON nếu AI trả về kèm các dấu backticks markdown hoặc văn bản rác
       if (isJson && text) {
-        text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const match = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+        if (match) {
+          text = match[0];
+        } else {
+          text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        }
       }
       
       return text;
@@ -302,7 +307,7 @@ export default function App() {
   const handleRefreshNews = async () => {
     if (isRefreshingNews) return;
     setIsRefreshingNews(true);
-    showToast(apiKey ? "AI đang thực hiện báo cáo chuyên sâu..." : "Đang tải phân tích...");
+    showToast("AI đang thực hiện báo cáo chuyên sâu...");
 
     try {
       const prompt = `Bạn là chuyên gia kinh tế. Hãy duyệt web tìm dữ liệu MỚI NHẤT TRONG 24H QUA về cà phê. 
