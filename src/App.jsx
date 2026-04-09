@@ -166,6 +166,12 @@ export default function App() {
   const [lastUpdate, setLastUpdate] = useState(new Date().toLocaleTimeString());
   const [currentSlide, setCurrentSlide] = useState(0);
   const [toast, setToast] = useState(null);
+  
+  // Use a ref to always access the latest prices inside async functions
+  const pricesRef = useRef(prices);
+  useEffect(() => {
+    pricesRef.current = prices;
+  }, [prices]);
 
   // --- Gemini Specific States ---
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
@@ -246,6 +252,21 @@ export default function App() {
     return () => { supabaseClient.removeChannel(channel); };
   }, [supabaseClient, user]);
 
+  // --- 4. Auto Fetch Real Data on First Load ---
+  const hasAutoFetched = useRef(false);
+  useEffect(() => {
+    const isSupabaseReady = (supabaseUrl && supabaseKey) ? supabaseClient !== null : true;
+    
+    // Nếu có API Key và chưa auto fetch bao giờ thì kích hoạt lấy dữ liệu thực tế
+    if (!hasAutoFetched.current && apiKey && isSupabaseReady) {
+      hasAutoFetched.current = true;
+      // Delay 1.5s để UI khởi tạo xong rồi mới load ngầm
+      setTimeout(() => {
+        handleRefresh(true);
+      }, 1500);
+    }
+  }, [supabaseClient]);
+
   // Tự động chuyển slide cho News
   useEffect(() => {
     if (activeTab === 'news' && !selectedItem) {
@@ -268,12 +289,17 @@ export default function App() {
     setTimeout(() => setToast(null), 2500);
   };
 
-  const handleRefresh = async () => {
+  const handleRefresh = async (isAutoLoad = false) => {
     if (isRefreshing) return;
     setIsRefreshing(true);
-    showToast(apiKey ? "Đang tìm kiếm giá thực tế trên Internet..." : "Đang làm mới giá (Chế độ Local)...");
     
-    let currentPrices = prices || INITIAL_PRICES;
+    if (!isAutoLoad) {
+      showToast(apiKey ? "Đang tìm kiếm giá thực tế trên Internet..." : "Đang làm mới giá (Chế độ Local)...");
+    } else if (apiKey) {
+      showToast("Tự động đồng bộ dữ liệu mới nhất ✨");
+    }
+    
+    let currentPrices = pricesRef.current || INITIAL_PRICES;
     let updatedPrices = { ...currentPrices };
 
     try {
@@ -336,7 +362,7 @@ export default function App() {
     setLastUpdate(new Date().toLocaleTimeString());
 
     if (!supabaseClient) {
-      showToast("Đã cập nhật giá dự phòng (Local) ✨");
+      if (!isAutoLoad) showToast("Đã cập nhật giá dự phòng (Local) ✨");
       setIsRefreshing(false);
       return;
     }
@@ -348,9 +374,9 @@ export default function App() {
         .eq('id', 'latest');
       
       if (error) throw error;
-      showToast("Đã đồng bộ lên máy chủ ✨");
+      if (!isAutoLoad) showToast("Đã đồng bộ lên máy chủ ✨");
     } catch (e) { 
-      showToast("Lỗi đồng bộ, chỉ cập nhật Local"); 
+      if (!isAutoLoad) showToast("Lỗi đồng bộ, chỉ cập nhật Local"); 
     } finally { 
       setIsRefreshing(false); 
     }
@@ -377,6 +403,7 @@ export default function App() {
 
   // --- Gemini Logic ---
   const handleAiMarketAnalysis = async () => {
+    if (!apiKey) { showToast("Vui lòng cấu hình Gemini API Key"); return; }
     setIsAiAnalyzing(true);
     setAiAnalysisResult(null);
     try {
@@ -391,6 +418,7 @@ export default function App() {
   };
 
   const handleAiSummarizeNews = async (newsItem) => {
+    if (!apiKey) { showToast("Vui lòng cấu hình Gemini API Key"); return; }
     setIsAiAnalyzing(true);
     try {
       const contentText = Array.isArray(newsItem.content) 
@@ -408,6 +436,7 @@ export default function App() {
   };
 
   const handleAiPredictTrend = async (priceItem) => {
+    if (!apiKey) { showToast("Vui lòng cấu hình Gemini API Key"); return; }
     setIsAiAnalyzing(true);
     try {
       const prompt = `Phân tích lịch sử giá vùng ${priceItem.province || priceItem.market}: ${priceItem.history.join(', ')}. Giá hiện tại: ${priceItem.price}. Với xu hướng ${priceItem.trend}, hãy dự báo giá trong 3 ngày tới và đưa ra 1 hành động cụ thể ✨. Trả lời thật ngắn gọn.`;
@@ -484,7 +513,7 @@ export default function App() {
 
           {!aiAnalysisResult ? (
             <button 
-              onClick={handleAiMarketAnalysis}
+              onClick={() => handleAiMarketAnalysis()}
               disabled={isAiAnalyzing}
               className="w-full flex items-center justify-center gap-2 bg-white text-emerald-800 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
             >
@@ -510,7 +539,7 @@ export default function App() {
           <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">Cập nhật: {lastUpdate}</p>
         </div>
         <button 
-          onClick={handleRefresh} 
+          onClick={() => handleRefresh(false)} 
           disabled={isRefreshing}
           className={`p-3 bg-white rounded-2xl shadow-sm border border-stone-100 text-emerald-600 active:scale-90 transition-all ${isRefreshing ? 'opacity-50' : ''}`}
         >
@@ -682,7 +711,7 @@ export default function App() {
           <FileText size={20} />
         </div>
         <div>
-          <h4 className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-1">Tóm lược AI</h4>
+          <h4 className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-1">Tóm lược AI ngày {new Date().toLocaleDateString('vi-VN')}</h4>
           <p className="text-xs text-amber-900/80 leading-relaxed font-medium">
             Tin tức cho thấy <span className="font-bold text-emerald-700">tác động {prices.aiInsights?.newsImpact || 'tích cực'}</span>. 
             Xuất khẩu kỷ lục và hạn hán Brazil duy trì đà tăng cho Robusta Việt Nam.
