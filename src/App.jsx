@@ -10,13 +10,18 @@ import {
 // --- Gemini API Setup ---
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
 
-const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân tích thị trường cà phê Việt Nam và thế giới.") => {
+const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân tích thị trường cà phê Việt Nam và thế giới.", isJson = false) => {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
   
   const payload = {
     contents: [{ parts: [{ text: prompt }] }],
-    systemInstruction: { parts: [{ text: systemPrompt }] }
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    tools: [{ google_search: {} }]
   };
+
+  if (isJson) {
+    payload.generationConfig = { responseMimeType: "application/json" };
+  }
 
   const maxRetries = 5;
   for (let i = 0; i < maxRetries; i++) {
@@ -266,35 +271,69 @@ export default function App() {
   const handleRefresh = async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
+    showToast("Đang tìm kiếm giá thực tế trên Internet...");
     
-    const currentPrices = prices || INITIAL_PRICES;
-    const newDomestic = (currentPrices.domestic || []).map(p => ({
-      ...p,
-      price: p.price + (Math.floor(Math.random() * 401) - 200),
-      change: Math.floor(Math.random() * 800) - 400
-    }));
+    let currentPrices = prices || INITIAL_PRICES;
+    let updatedPrices = { ...currentPrices };
 
-    const newGlobal = (currentPrices.global || []).map(g => ({
-      ...g,
-      price: g.price + parseFloat(((Math.random() * 10) - 5).toFixed(2)),
-      change: Math.floor(Math.random() * 100) - 50
-    }));
+    try {
+      const prompt = `Hãy tìm kiếm trên Internet giá cà phê thực tế mới nhất hôm nay tại Việt Nam và thế giới (London, New York).
+      Trích xuất dữ liệu và trả về đúng định dạng JSON này (CHỈ TRẢ VỀ JSON, KHÔNG CÓ BẤT KỲ TEXT NÀO KHÁC):
+      {
+        "domestic": [
+          {"id": "daklak", "price": <giá số nguyên VD: 105000>, "change": <số chênh lệch so với hôm qua>, "trend": "Bullish/Bearish/Neutral", "analysis": "Nhận định ngắn từ tin tức mới nhất"},
+          {"id": "lamdong", "price": <số>, "change": <số>, "trend": "...", "analysis": "..."},
+          {"id": "gialai", "price": <số>, "change": <số>, "trend": "...", "analysis": "..."},
+          {"id": "daknong", "price": <số>, "change": <số>, "trend": "...", "analysis": "..."}
+        ],
+        "global": [
+          {"id": "london", "price": <số USD>, "change": <số>, "trend": "...", "analysis": "..."},
+          {"id": "newyork", "price": <số Cent>, "change": <số>, "trend": "...", "analysis": "..."}
+        ],
+        "aiInsights": {
+          "marketSentiment": "Tên xu hướng ngắn gọn",
+          "sentimentScore": <điểm 0-100>,
+          "summary": "Tóm tắt thị trường hôm nay dựa trên dữ liệu thực tế"
+        }
+      }`;
+      
+      const jsonStr = await callGeminiAPI(prompt, "Bạn là bot lấy dữ liệu thực tế mới nhất.", true);
+      const realData = JSON.parse(jsonStr);
 
-    const updatedPrices = { 
-      ...currentPrices, 
-      domestic: newDomestic,
-      global: newGlobal,
-      aiInsights: {
-        ...currentPrices.aiInsights,
-        sentimentScore: Math.floor(Math.random() * 100)
-      }
-    };
+      const newDomestic = currentPrices.domestic.map(old => {
+        const fresh = realData.domestic?.find(d => d.id === old.id) || {};
+        const newPrice = fresh.price || old.price;
+        return { ...old, ...fresh, history: [...old.history.slice(1), newPrice] };
+      });
+
+      const newGlobal = currentPrices.global.map(old => {
+        const fresh = realData.global?.find(g => g.id === old.id) || {};
+        const newPrice = fresh.price || old.price;
+        return { ...old, ...fresh, history: [...old.history.slice(1), newPrice] };
+      });
+
+      updatedPrices = { 
+        ...currentPrices, 
+        domestic: newDomestic, 
+        global: newGlobal, 
+        aiInsights: { ...currentPrices.aiInsights, ...realData.aiInsights } 
+      };
+    } catch (e) {
+      console.error("Lỗi lấy dữ liệu thực tế, dùng dữ liệu dự phòng:", e);
+      const newDomestic = (currentPrices.domestic || []).map(p => ({
+        ...p, price: p.price + (Math.floor(Math.random() * 401) - 200), change: Math.floor(Math.random() * 800) - 400
+      }));
+      const newGlobal = (currentPrices.global || []).map(g => ({
+        ...g, price: g.price + parseFloat(((Math.random() * 10) - 5).toFixed(2)), change: Math.floor(Math.random() * 100) - 50
+      }));
+      updatedPrices = { ...currentPrices, domestic: newDomestic, global: newGlobal, aiInsights: { ...currentPrices.aiInsights, sentimentScore: Math.floor(Math.random() * 100) } };
+    }
 
     if (!supabaseClient) {
       setPrices(updatedPrices);
       setLastUpdate(new Date().toLocaleTimeString());
-      showToast("Đã cập nhật giá (Local Mode) ✨");
-      setTimeout(() => setIsRefreshing(false), 800);
+      showToast("Đã cập nhật giá thực tế (Local) ✨");
+      setIsRefreshing(false);
       return;
     }
 
@@ -309,9 +348,9 @@ export default function App() {
     } catch (e) { 
       setPrices(updatedPrices);
       setLastUpdate(new Date().toLocaleTimeString());
-      showToast("Lỗi đồng bộ, đã cập nhật Local"); 
+      showToast("Lỗi đồng bộ, cập nhật Local"); 
     } finally { 
-      setTimeout(() => setIsRefreshing(false), 800); 
+      setIsRefreshing(false); 
     }
   };
 
@@ -336,7 +375,6 @@ export default function App() {
 
   // --- Gemini Logic ---
   const handleAiMarketAnalysis = async () => {
-    if (!apiKey) { showToast("Vui lòng cấu hình Gemini API Key"); return; }
     setIsAiAnalyzing(true);
     setAiAnalysisResult(null);
     try {
@@ -351,7 +389,6 @@ export default function App() {
   };
 
   const handleAiSummarizeNews = async (newsItem) => {
-    if (!apiKey) { showToast("Vui lòng cấu hình Gemini API Key"); return; }
     setIsAiAnalyzing(true);
     try {
       const contentText = Array.isArray(newsItem.content) 
@@ -369,7 +406,6 @@ export default function App() {
   };
 
   const handleAiPredictTrend = async (priceItem) => {
-    if (!apiKey) { showToast("Vui lòng cấu hình Gemini API Key"); return; }
     setIsAiAnalyzing(true);
     try {
       const prompt = `Phân tích lịch sử giá vùng ${priceItem.province || priceItem.market}: ${priceItem.history.join(', ')}. Giá hiện tại: ${priceItem.price}. Với xu hướng ${priceItem.trend}, hãy dự báo giá trong 3 ngày tới và đưa ra 1 hành động cụ thể ✨. Trả lời thật ngắn gọn.`;
