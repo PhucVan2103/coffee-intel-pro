@@ -196,6 +196,16 @@ export default function App() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [supabaseClient, setSupabaseClient] = useState(null);
 
+  // --- Khởi tạo Tailwind CSS dự phòng ---
+  useEffect(() => {
+    if (!document.getElementById('tailwind-script')) {
+      const twScript = document.createElement('script');
+      twScript.id = 'tailwind-script';
+      twScript.src = "https://cdn.tailwindcss.com";
+      document.head.appendChild(twScript);
+    }
+  }, []);
+
   // --- Khởi tạo Supabase Client ---
   useEffect(() => {
     if (!supabaseUrl || !supabaseKey) return;
@@ -584,11 +594,11 @@ export default function App() {
 
   const NewsView = () => (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="relative h-48 rounded-[2.5rem] overflow-hidden group shadow-xl">
+      <div className="relative h-48 rounded-[2.5rem] overflow-hidden group shadow-xl bg-stone-900">
         {HOT_NEWS_SLIDES.map((slide, i) => (
           <div 
             key={slide.id}
-            className={`absolute inset-0 bg-gradient-to-br ${slide.color} p-8 flex flex-col justify-center transition-all duration-700 ease-in-out ${i === currentSlide ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-95 z-0'}`}
+            className={`absolute inset-0 bg-gradient-to-br ${slide.color} p-8 flex flex-col justify-center transition-all duration-700 ease-in-out ${i === currentSlide ? 'opacity-100 scale-100 z-10 pointer-events-auto' : 'opacity-0 scale-95 z-0 pointer-events-none'}`}
           >
             <div className="flex items-center gap-2 mb-2 relative z-20">
               <span className="px-2 py-0.5 bg-white/20 text-white text-[9px] font-black rounded-md uppercase tracking-widest">{slide.tag}</span>
