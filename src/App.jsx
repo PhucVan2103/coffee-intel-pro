@@ -23,7 +23,6 @@ const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân
     payload.generationConfig = { responseMimeType: "application/json" };
   }
 
-  // TỐI ƯU 1: Giảm Max Retries để tránh treo app lâu khi rớt mạng
   const maxRetries = 2;
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -57,7 +56,7 @@ const INITIAL_HOT_NEWS = [
       { type: 'paragraph', text: 'Theo các số liệu vệ tinh mới nhất, độ ẩm đất tại khu vực vành đai trồng cà phê Minas Gerais đã giảm xuống mức thấp kỷ lục trong vòng 5 năm qua. Tình trạng nắng nóng kéo dài đang gây sức ép nghiêm trọng lên sự phát triển của quả cà phê non.' },
       { type: 'subheading', text: 'Tác động tức thì đến thị trường' },
       { type: 'paragraph', text: 'Thông tin này ngay lập tức làm dấy lên làn sóng lo ngại trên các sàn giao dịch quốc tế. Nhiều quỹ đầu cơ đã bắt đầu chuyển hướng dòng vốn, gia tăng vị thế mua vào để phòng ngừa rủi ro thiếu hụt nguồn cung.' },
-      { type: 'quote', text: 'Mức giảm 5% tại Brazil tương đương với việc bốc hơi hàng triệu bao cà phê khỏi thị trường toàn cầu. Điều này chắc chắn sẽ tạo đà hỗ trợ vững chắc cho giá cà phê trong trung hạn.', author: 'Nhận định từ AI' }
+      { type: 'quote', text: 'Mức giảm 5% tại Brazil tương đương với việc bốc hơi hàng triệu bao cà phê khỏi thị trường toàn cầu. Điều này chắc chắn sẽ tạo đà hỗ trợ vững chắc cho giá cà phê trong trung hạn.', author: 'Nhận định từ chuyên gia ICO' }
     ]
   },
   { 
@@ -68,18 +67,7 @@ const INITIAL_HOT_NEWS = [
       { type: 'paragraph', text: 'Động lực chính của đợt tăng giá điên cuồng này đến từ lực mua đầu cơ mạnh mẽ ngay từ những phút đầu mở phiên. Báo cáo tồn kho trên sàn tiếp tục sụt giảm, dấy lên hồi chuông cảnh báo về khả năng cạn kiệt nguồn cung hàng thực.' },
       { type: 'subheading', text: 'Việt Nam giữ vai trò quyết định' },
       { type: 'paragraph', text: 'Trong bối cảnh nguồn cung từ Indonesia và Brazil đều gặp vấn đề, mọi sự chú ý đang đổ dồn về Việt Nam. Tuy nhiên, lượng hàng trong dân không còn nhiều, trong khi các đại lý nội địa vẫn đang giữ tâm lý găm hàng chờ giá lên cao hơn nữa.' },
-      { type: 'quote', text: 'Thị trường đang ở trạng thái "Vắt trượt" (Backwardation) nghiêm trọng. Người mua sẵn sàng trả bất cứ giá nào để có được hàng giao ngay.', author: 'Chuyên gia giao dịch phái sinh' }
-    ]
-  },
-  { 
-    id: 'h3', title: 'Cảng Santos (Brazil) đình công gây tắc nghẽn vận tải', tag: 'LOGISTICS', type: 'globe', color: 'bg-blue-900',
-    author: 'Logistics AI', readTime: '3 phút đọc', time: '2 giờ trước', category: 'Chuỗi cung ứng', image: 'https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&q=80&w=800',
-    content: [
-      { type: 'lead', text: 'Cuộc đình công bất ngờ tại cảng Santos (Brazil) - cảng xuất khẩu cà phê lớn nhất thế giới - đang đẩy chuỗi cung ứng toàn cầu vào tình trạng báo động đỏ.' },
-      { type: 'paragraph', text: 'Hiệp hội Công nhân bốc xếp tại cảng đã tuyên bố ngừng việc để yêu cầu tăng lương và cải thiện điều kiện làm việc. Hàng nghìn container cà phê đang chịu cảnh nằm chờ tại bãi, không thể bốc lên tàu.' },
-      { type: 'subheading', text: 'Hệ lụy khôn lường' },
-      { type: 'paragraph', text: 'Dự kiến, thời gian giao hàng cho các hợp đồng tháng tới sẽ bị chậm trễ ít nhất 2 đến 3 tuần. Sự cố logistics này tạo ra một "khoảng trống" nguồn cung tạm thời tại các thị trường tiêu thụ lớn như châu Âu và Mỹ.' },
-      { type: 'paragraph', text: 'Đối với cà phê Việt Nam, đây là một tin tức mang tính hỗ trợ mạnh. Các nhà rang xay có thể sẽ phải tăng cường mua hàng Robusta từ Việt Nam để bù đắp sự thiếu hụt nguyên liệu cục bộ này.' }
+      { type: 'quote', text: 'Thị trường đang ở trạng thái "Vắt trượt" (Backwardation) nghiêm trọng. Người mua sẵn sàng trả bất cứ giá nào để có được hàng giao ngay.', author: 'Chuyên gia Volcafe' }
     ]
   }
 ];
@@ -117,69 +105,64 @@ const INITIAL_PRICES = {
 
 const MOCK_NEWS = [
   {
-    id: 'n1', category: 'Thị trường', title: 'Xuất khẩu cà phê Việt Nam quý 1 đạt kỷ lục chưa từng có', author: 'Minh Quang', readTime: '5 phút đọc',
-    summary: 'Kim ngạch xuất khẩu tăng trưởng mạnh nhờ giá neo cao...', time: '1 giờ trước',
+    id: 'n1', category: 'Phân tích', title: 'Thiếu hụt Robusta Việt Nam và nghịch lý giá nội địa', author: 'Hiệp hội Cà phê', readTime: '5 phút đọc',
+    summary: 'Phân tích cấu trúc cung cầu khiến giá cà phê nội địa neo cao bất chấp áp lực chốt lời.', time: '1 giờ trước',
     image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&q=80&w=800',
     content: [
-      { type: 'lead', text: "Kết thúc quý 1 năm 2026, ngành cà phê Việt Nam ghi nhận một cột mốc lịch sử mới khi kim ngạch xuất khẩu đạt hơn 1,9 tỷ USD, tăng 54% so với cùng kỳ năm ngoái, mặc dù sản lượng xuất khẩu chỉ tăng nhẹ." },
-      { type: 'paragraph', text: "Theo số liệu sơ bộ từ Tổng cục Hải quan, lượng cà phê xuất khẩu trong 3 tháng đầu năm ước đạt 580.000 tấn. Mặc dù khối lượng không có sự đột biến lớn, nhưng giá trị thu về lại tăng vọt nhờ giá cà phê thế giới liên tục phá đỉnh." },
-      { type: 'subheading', text: "Động lực từ nguồn cung toàn cầu suy yếu" },
-      { type: 'paragraph', text: "Nguyên nhân chính dẫn đến đà tăng giá phi mã này xuất phát từ những lo ngại về nguồn cung tại các quốc gia sản xuất lớn khác. Brazil và Indonesia, hai đối thủ cạnh tranh chính của Việt Nam, đều đang phải đối mặt với tình trạng thời tiết cực đoan do ảnh hưởng của hiện tượng El Nino kéo dài." },
-      { type: 'quote', text: "Với tình hình khan hiếm hàng thực như hiện nay, các nhà rang xay toàn cầu đang phải đổ dồn về thị trường Việt Nam để tìm kiếm nguồn cung thay thế, chấp nhận mức giá cao chưa từng thấy.", author: "Chuyên gia phân tích thị trường" },
-      { type: 'paragraph', text: "Cụ thể, giá xuất khẩu bình quân của cà phê Việt Nam trong quý 1 đạt mức 3.200 USD/tấn, mức cao nhất trong lịch sử ghi nhận. Thậm chí, nhiều lô hàng giao ngay còn được giao dịch với giá cao hơn mức giá tham chiếu trên sàn London." },
-      { type: 'subheading', text: "Dự báo triển vọng tỷ đô" },
-      { type: 'paragraph', text: "Nhiều chuyên gia dự báo, nếu đà giá này tiếp tục được duy trì và nguồn cung trong nước còn đủ để đáp ứng các đơn hàng đã ký, kim ngạch xuất khẩu cà phê của Việt Nam trong năm 2026 hoàn toàn có khả năng vượt mốc 5 tỷ USD - một con số mơ ước của ngành nông nghiệp." }
+      { type: 'lead', text: "Việt Nam đang bước vào giai đoạn cuối vụ thu hoạch với một nghịch lý lớn: Sản lượng thực tế thấp hơn đáng kể so với dự báo, khiến các nhà xuất khẩu chật vật gom hàng." },
+      { type: 'paragraph', text: "Theo nhiều thương lái tại Tây Nguyên, lượng hàng dự trữ trong dân hiện chỉ còn khoảng 30% so với thông lệ hàng năm. Đợt nắng nóng gay gắt kéo dài tại Đắk Lắk và Gia Lai trong mùa khô vừa qua đã làm giảm kích thước hạt và tỷ lệ đậu quả." },
+      { type: 'subheading', text: "Doanh nghiệp FDI khát hàng" },
+      { type: 'paragraph', text: "Các doanh nghiệp FDI đang chịu áp lực rất lớn phải giao hàng theo hợp đồng kỳ hạn đã ký. Để tránh bị phạt hợp đồng, họ buộc phải nâng giá thu mua nội địa liên tục, kéo theo mức chênh lệch (premium) so với giá sàn London lên mức dương kỷ lục." },
+      { type: 'quote', text: "Chúng tôi chưa bao giờ chứng kiến tình trạng khó gom hàng thực đến như vậy. Nông dân hiện nay rất nhạy bén với thông tin tài chính, họ áp dụng chiến lược 'bán nhỏ giọt' để tối ưu hóa lợi nhuận.", author: "Đại diện một nhà xuất khẩu lớn" },
+      { type: 'paragraph', text: "Trong ngắn hạn, cho đến khi nguồn cung mới từ Indonesia (bắt đầu thu hoạch vào tháng 5) tham gia vào thị trường, giá cà phê Việt Nam được dự báo sẽ tiếp tục neo ở mặt bằng giá rất cao." }
     ]
   },
   {
-    id: 'n2', category: 'Thời tiết', title: 'Brazil đối mặt rủi ro khô hạn kép tại vùng Arabica trọng điểm', author: 'Hương Giang', readTime: '4 phút đọc',
-    summary: 'Cảnh báo El Nino gây hạn hán kéo dài tại Brazil...', time: '3 giờ trước',
-    image: 'https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?auto=format&fit=crop&q=80&w=800',
-    content: [
-      { type: 'lead', text: "Cơ quan Khí tượng Quốc gia Brazil (INMET) vừa phát đi cảnh báo đỏ về tình trạng khô hạn kéo dài tại khu vực Đông Nam, nơi tập trung các vành đai trồng cà phê Arabica lớn nhất thế giới." },
-      { type: 'paragraph', text: "Báo cáo mới nhất cho thấy lượng mưa đo được tại các bang Minas Gerais và Sao Paulo trong 30 ngày qua thấp hơn tới 40% so với trung bình nhiều năm. Đáng lo ngại hơn, tình trạng này xảy ra đúng vào giai đoạn cây cà phê đang nuôi trái, cần lượng nước dồi dào để phát triển kích thước hạt." },
-      { type: 'subheading', text: "Nguy cơ sụt giảm sản lượng và chất lượng" },
-      { type: 'paragraph', text: "Việc thiếu nước nghiêm trọng kết hợp với nhiệt độ trung bình cao hơn bình thường khoảng 2-3 độ C khiến độ ẩm đất giảm mạnh. Cây cà phê bị stress nhiệt có thể dẫn đến hiện tượng rụng trái non hoặc hạt nhỏ (cherry size), trực tiếp làm giảm tỷ lệ hạt đạt chuẩn xuất khẩu loại 1." },
-      { type: 'quote', text: "Nếu không có những cơn mưa lớn trong 2 tuần tới, chúng tôi ước tính sản lượng Arabica của khu vực này có thể giảm từ 10% đến 15% so với dự báo ban đầu.", author: "Hợp tác xã nông nghiệp Minas Gerais" },
-      { type: 'paragraph', text: "Ngay khi thông tin này được công bố, thị trường tài chính đã phản ứng dữ dội. Trên sàn giao dịch ICE New York, giá cà phê Arabica kỳ hạn đã nhảy vọt hơn 3% chỉ trong phiên giao dịch buổi sáng, đạt mức cao nhất trong 6 tháng qua." },
-      { type: 'paragraph', text: "Sự cố thời tiết tại Brazil không chỉ ảnh hưởng đến giá Arabica mà còn tạo hiệu ứng lan tỏa, hỗ trợ đà tăng cho cả giá cà phê Robusta trên sàn London, gián tiếp mang lại lợi thế cho giá cà phê nội địa Việt Nam." }
-    ]
-  },
-  {
-    id: 'n3', category: 'Logistics', title: 'Cước vận tải biển tăng vọt do căng thẳng Biển Đỏ', author: 'Trần Hải', readTime: '3 phút đọc',
-    summary: 'Chi phí vận chuyển cà phê sang châu Âu tăng mạnh...', time: '5 giờ trước',
+    id: 'n3', category: 'Logistics', title: 'Quy định EUDR cận kề: Rủi ro hay cơ hội cho Việt Nam?', author: 'Trần Hải', readTime: '4 phút đọc',
+    summary: 'Chỉ còn chưa đầy 1 năm trước khi Quy định chống phá rừng của EU chính thức có hiệu lực...', time: '5 giờ trước',
     image: 'https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&q=80&w=800',
     content: [
-      { type: 'lead', text: "Chi phí vận chuyển container từ châu Á sang châu Âu đã tăng gấp đôi trong vòng 2 tháng qua." },
-      { type: 'paragraph', text: "Sự gián đoạn tại Biển Đỏ buộc các hãng tàu phải đi vòng qua Mũi Hảo Vọng, kéo dài thời gian hành trình thêm 10-15 ngày và đội chi phí lên cao. Điều này khiến giá cà phê cập cảng châu Âu bị cộng thêm một khoản phụ phí không nhỏ." }
-    ]
-  },
-  {
-    id: 'n4', category: 'Phân tích', title: 'Quỹ đầu cơ xả hàng, thị trường liệu có đảo chiều?', author: 'Góc nhìn AI', readTime: '6 phút đọc',
-    summary: 'Dấu hiệu chốt lời từ các quỹ đầu cơ lớn trên sàn London...', time: '12 giờ trước',
-    image: 'https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&q=80&w=800',
-    content: [
-      { type: 'lead', text: "Báo cáo COT mới nhất cho thấy các quỹ đầu tư đang thu hẹp vị thế mua ròng (net long) trên cả hai sàn giao dịch kỳ hạn." },
-      { type: 'paragraph', text: "Tuy nhiên, lực bán vẫn chưa đủ mạnh để bẻ gãy xu hướng tăng dài hạn do cấu trúc thiếu hụt nguồn cung cơ bản vẫn chưa được giải quyết dứt điểm." }
+      { type: 'lead', text: "Quy định chống phá rừng của Liên minh châu Âu (EUDR) đang tạo ra một cuộc chạy đua kiểm chuẩn (compliance) chưa từng có trong ngành cà phê." },
+      { type: 'paragraph', text: "Theo đó, 100% lô hàng cà phê xuất khẩu vào EU phải chứng minh được không có nguồn gốc từ đất rừng bị phá sau năm 2020. Điều này đòi hỏi hệ thống truy xuất nguồn gốc đến tận từng vườn cây bằng tọa độ GPS." },
+      { type: 'subheading', text: "Lợi thế cạnh tranh của Việt Nam" },
+      { type: 'paragraph', text: "Khác với châu Phi hay một số nước Nam Mỹ, hệ sinh thái cà phê Việt Nam phần lớn đã ổn định diện tích từ lâu và không dính dáng đến phá rừng nguyên sinh. Nếu số hóa dữ liệu nông hộ thành công, Việt Nam sẽ chiếm ưu thế tuyệt đối." },
+      { type: 'quote', text: "EUDR không phải là rào cản, mà là 'tấm vé vàng' để cà phê Việt Nam loại bỏ các đối thủ cạnh tranh không tuân thủ, từ đó đàm phán được mức giá cộng thêm (premium) tốt hơn tại thị trường châu Âu.", author: "Viện Chính sách Nông nghiệp" }
     ]
   }
 ];
 
-// Hàm sinh tin tức tự động
 const generateAutoNews = () => {
   const now = new Date();
+  const topics = [
+    {
+      title: "Quỹ đầu cơ xả hàng trên sàn ICE: Tín hiệu đảo chiều hay nhịp điều chỉnh?",
+      lead: "Dữ liệu COT (Commitment of Traders) mới nhất cho thấy các quỹ quản lý vốn đã giảm 15% vị thế mua ròng (net long) trên cả hai sàn giao dịch.",
+      para: "Mặc dù lực bán chốt lời xuất hiện, cấu trúc thiếu hụt nguồn cung cơ bản vẫn chưa được giải quyết. Giới phân tích cho rằng đây chỉ là nhịp điều chỉnh kỹ thuật lành mạnh để thị trường rũ bỏ áp lực margin, trước khi thiết lập mặt bằng giá mới dựa trên sự thiếu hụt hàng thực tế.",
+      quote: "Lực mua của giới công nghiệp (nhà rang xay) ở các vùng giá thấp vẫn rất mạnh, tạo ra một 'mức sàn cứng' hỗ trợ giá trong trung hạn.", author: "Tổ chức Cà phê Quốc tế (ICO)"
+    },
+    {
+      title: "Hiệu ứng El Nino tại Indonesia đe dọa nguồn cung Robusta toàn cầu",
+      lead: "Cơ quan Khí tượng Indonesia vừa xác nhận tình trạng lượng mưa thấp hơn 30% so với trung bình nhiều năm tại vùng trồng cà phê trọng điểm Sumatra.",
+      para: "Sản lượng của Indonesia - nhà sản xuất Robusta lớn thứ 3 thế giới - được dự báo sẽ giảm xuống mức thấp nhất trong 4 năm qua. Việc Indonesia thiếu hàng xuất khẩu sẽ đẩy áp lực cung ứng đè nặng lên vai Việt Nam, tiếp tục củng cố cấu trúc giá tăng trên sàn London.",
+      quote: "Khách hàng của chúng tôi tại châu Âu đang phải chuyển hướng các đơn hàng từ Sumatra sang Việt Nam bất chấp chi phí cước biển qua Biển Đỏ tăng vọt.", author: "Giám đốc cung ứng khu vực EU"
+    }
+  ];
+  const selected = topics[Math.floor(Math.random() * topics.length)];
+
   return {
     id: `auto_${now.getTime()}`,
-    category: ['Thị trường', 'Giá cả', 'Thời tiết', 'Xuất khẩu'][Math.floor(Math.random() * 4)],
-    title: `Bản tin nhanh thị trường cà phê lúc ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`,
-    author: 'AI Reporter',
-    readTime: '2 phút đọc',
-    summary: 'Bản tin tổng hợp tự động các biến động mới nhất trên thị trường nội địa và quốc tế...',
+    category: 'Phân tích chuyên sâu',
+    title: selected.title,
+    author: 'Chuyên gia AI',
+    readTime: '4 phút đọc',
+    summary: selected.lead.substring(0, 70) + '...',
     time: 'Vừa xong',
     image: `https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&q=80&w=800&sig=${now.getTime()}`,
     content: [
-      { type: 'lead', text: `Hệ thống ghi nhận biến động mới nhất vào lúc ${now.toLocaleTimeString('vi-VN')}.` },
-      { type: 'paragraph', text: 'Đây là bản tin được tổng hợp tự động hàng giờ bởi hệ thống AI nhằm giúp người dùng nắm bắt nhanh nhất các xu hướng của thị trường cà phê toàn cầu.' }
+      { type: 'lead', text: selected.lead },
+      { type: 'paragraph', text: selected.para },
+      { type: 'quote', text: selected.quote, author: selected.author },
+      { type: 'paragraph', text: "Hệ thống AI của Coffee Intel Pro sẽ tiếp tục theo dõi biến động dòng tiền và cập nhật trong các bản tin tiếp theo." }
     ]
   };
 };
@@ -192,8 +175,8 @@ const generateAutoHotNews = () => {
   return {
     id: `hot_${now.getTime()}`,
     category: 'TIN NÓNG',
-    title: `Cập nhật thị trường nóng lúc ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`,
-    tag: 'TIN NÓNG AI',
+    title: `Biến động bất thường: Cập nhật dòng tiền quỹ đầu tư lúc ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`,
+    tag: 'CẢNH BÁO AI',
     type: types[randIdx],
     color: colors[randIdx],
     author: 'AI Monitor',
@@ -201,9 +184,9 @@ const generateAutoHotNews = () => {
     time: 'Vừa xong',
     image: `https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&q=80&w=800&sig=${now.getTime() + 1}`,
     content: [
-      { type: 'lead', text: `Hệ thống AI vừa quét và ghi nhận những biến động bất thường của dòng tiền trên thị trường vào lúc ${now.toLocaleTimeString('vi-VN')}.` },
-      { type: 'paragraph', text: "Theo phân tích thuật toán, các chỉ số kỹ thuật đang cho thấy sự thay đổi đột ngột trong tâm lý giao dịch của các quỹ đầu tư lớn. Khối lượng giao dịch tăng đột biến ở các hợp đồng kỳ hạn gần." },
-      { type: 'quote', text: "Chúng tôi khuyến nghị các nhà đầu tư và người nông dân nên theo dõi sát sao diễn biến trong 2-3 phiên giao dịch tiếp theo trước khi đưa ra quyết định chốt lời số lượng lớn.", author: "Hệ thống Cảnh báo AI" }
+      { type: 'lead', text: `Hệ thống AI vừa quét và ghi nhận những biến động bất thường của dòng tiền trên thị trường phái sinh vào lúc ${now.toLocaleTimeString('vi-VN')}.` },
+      { type: 'paragraph', text: "Theo phân tích thuật toán cấu trúc lệnh, các chỉ số kỹ thuật đang cho thấy sự thay đổi đột ngột trong tâm lý giao dịch của các quỹ đầu tư lớn. Khối lượng giao dịch tăng đột biến ở các hợp đồng kỳ hạn gần, cho thấy tín hiệu chuẩn bị gom hàng thực." },
+      { type: 'quote', text: "Chúng tôi khuyến nghị các nhà đầu tư và người nông dân nên theo dõi sát sao diễn biến trong 2-3 phiên giao dịch tiếp theo trước khi đưa ra quyết định chốt lời số lượng lớn.", author: "Hệ thống Cảnh báo AI Coffee Intel" }
     ]
   };
 };
@@ -218,19 +201,24 @@ export default function App() {
   const [visibleNewsCount, setVisibleNewsCount] = useState(3);
   const [bookmarks, setBookmarks] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRefreshingNews, setIsRefreshingNews] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [lastUpdate, setLastUpdate] = useState(new Date().toLocaleTimeString());
   const [currentSlide, setCurrentSlide] = useState(0);
   const [toast, setToast] = useState(null);
   
   const pricesRef = useRef(prices);
-  useEffect(() => {
-    pricesRef.current = prices;
-  }, [prices]);
+  const newsRef = useRef(news);
+  const hotNewsRef = useRef(hotNews);
+
+  useEffect(() => { pricesRef.current = prices; }, [prices]);
+  useEffect(() => { newsRef.current = news; }, [news]);
+  useEffect(() => { hotNewsRef.current = hotNews; }, [hotNews]);
 
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState(null);
 
+  // --- Initialize Scripts ---
   useEffect(() => {
     if (!document.getElementById('tailwind-script')) {
       const twScript = document.createElement('script');
@@ -257,6 +245,7 @@ export default function App() {
     }
   }, [supabaseClient]);
 
+  // --- Auth ---
   useEffect(() => {
     if (!supabaseClient) return;
     const initAuth = async () => {
@@ -274,30 +263,52 @@ export default function App() {
     return () => authListener.subscription.unsubscribe();
   }, [supabaseClient]);
 
+  // --- Fetch Data & Realtime ---
   useEffect(() => {
     if (!supabaseClient || !user) return;
     const fetchInitialData = async () => {
+      // 1. Lấy dữ liệu Bảng Giá
       const { data: mData, error: mError } = await supabaseClient.from('market_data').select('*').eq('id', 'latest').single();
       if (!mError && mData) {
         setPrices(mData.prices_json);
-        setLastUpdate(new Date().toLocaleTimeString());
+        setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
       } else if (mError?.code === 'PGRST116') {
         await supabaseClient.from('market_data').upsert({ id: 'latest', prices_json: INITIAL_PRICES });
       }
+
+      // 2. Lấy dữ liệu Tin Tức từ DB
+      const { data: nData, error: nError } = await supabaseClient.from('market_data').select('*').eq('id', 'news').single();
+      if (!nError && nData && nData.prices_json) {
+        if (nData.prices_json.news) setNews(nData.prices_json.news);
+        if (nData.prices_json.hotNews) setHotNews(nData.prices_json.hotNews);
+      } else if (nError?.code === 'PGRST116') {
+        await supabaseClient.from('market_data').upsert({ id: 'news', prices_json: { news: MOCK_NEWS, hotNews: INITIAL_HOT_NEWS } });
+      }
+
+      // 3. Lấy Bookmarks
       const { data: uData, error: uError } = await supabaseClient.from('user_profiles').select('bookmarks').eq('user_id', user.id).single();
       if (!uError && uData) setBookmarks(uData.bookmarks || []);
       else if (uError?.code === 'PGRST116') {
         await supabaseClient.from('user_profiles').upsert({ user_id: user.id, bookmarks: [] });
       }
     };
+
     fetchInitialData();
+
+    // 4. Lắng nghe thay đổi Realtime cho cả bảng giá và tin tức
     const channel = supabaseClient.channel('market-updates')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'market_data', filter: 'id=eq.latest' }, payload => {
-        if (payload.new && payload.new.prices_json) {
-          setPrices(payload.new.prices_json);
-          setLastUpdate(new Date().toLocaleTimeString());
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'market_data' }, payload => {
+        if (payload.new) {
+          if (payload.new.id === 'latest' && payload.new.prices_json) {
+            setPrices(payload.new.prices_json);
+            setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
+          } else if (payload.new.id === 'news' && payload.new.prices_json) {
+            if (payload.new.prices_json.news) setNews(payload.new.prices_json.news);
+            if (payload.new.prices_json.hotNews) setHotNews(payload.new.prices_json.hotNews);
+          }
         }
       }).subscribe();
+
     return () => { supabaseClient.removeChannel(channel); };
   }, [supabaseClient, user]);
 
@@ -319,25 +330,46 @@ export default function App() {
     }
   }, [activeTab, selectedItem, hotNews.length]);
 
+  // Sinh tin tức tự động định kỳ
   useEffect(() => {
     const INTERVAL_TIME = 10 * 60 * 1000; 
     const interval = setInterval(() => {
-      setNews(prevNews => [generateAutoNews(), ...prevNews]);
-      setVisibleNewsCount(prevCount => prevCount + 1);
+      const newArticle = generateAutoNews();
+      const updatedNews = [newArticle, ...newsRef.current].slice(0, 30); // Giữ tối đa 30 tin trong DB để tránh nặng
+      
+      setNews(updatedNews);
+      setVisibleNewsCount(prev => prev + 1);
+
+      // Lưu tin tự động sinh xuống DB
+      if (supabaseClient) {
+        supabaseClient.from('market_data').upsert({
+          id: 'news',
+          prices_json: { news: updatedNews, hotNews: hotNewsRef.current }
+        });
+      }
     }, INTERVAL_TIME);
     return () => clearInterval(interval);
-  }, []);
+  }, [supabaseClient]);
 
+  // Sinh tin NÓNG tự động định kỳ
   useEffect(() => {
     const ONE_HOURS = 1 * 60 * 60 * 1000; 
     const interval = setInterval(() => {
-      setHotNews(prev => {
-        const newHot = generateAutoHotNews();
-        return [newHot, ...prev.slice(0, 2)];
-      });
+      const newHot = generateAutoHotNews();
+      const updatedHotNews = [newHot, ...hotNewsRef.current.slice(0, 2)];
+      
+      setHotNews(updatedHotNews);
+
+      // Lưu tin nóng xuống DB
+      if (supabaseClient) {
+        supabaseClient.from('market_data').upsert({
+          id: 'news',
+          prices_json: { news: newsRef.current, hotNews: updatedHotNews }
+        });
+      }
     }, ONE_HOURS);
     return () => clearInterval(interval);
-  }, []);
+  }, [supabaseClient]);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -350,8 +382,6 @@ export default function App() {
       setSelectedItem(null);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-
-    showToast(`Đang cập nhật dữ liệu mới nhất...`);
     
     if (supabaseClient) {
       const { data, error } = await supabaseClient.from('market_data').select('*').eq('id', 'latest').single();
@@ -359,16 +389,73 @@ export default function App() {
         setPrices(data.prices_json);
         setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
       }
-    } else {
-      const currentPrices = pricesRef.current || INITIAL_PRICES;
-      const newDomestic = (currentPrices.domestic || []).map(p => ({
-        ...p, 
-        price: p.price + (Math.floor(Math.random() * 200) - 100),
-        change: Math.floor(Math.random() * 400) - 200
-      }));
-      setPrices({ ...currentPrices, domestic: newDomestic });
-      setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
     }
+  };
+
+  const handleRefreshNews = async () => {
+    if (isRefreshingNews) return;
+    setIsRefreshingNews(true);
+    showToast(apiKey ? "AI đang tổng hợp phân tích mới..." : "Đang tải phân tích chuyên sâu...");
+
+    let newArticle;
+
+    try {
+      if (!apiKey) throw new Error("Chưa có API Key");
+
+      const prompt = `Đóng vai một chuyên gia phân tích thị trường cà phê cấp cao. Hãy duyệt web tìm thông tin MỚI NHẤT HÔM NAY về thị trường cà phê toàn cầu và Việt Nam.
+      Viết 1 bản tin phân tích CHUYÊN SÂU, CÓ SỐ LIỆU THỰC TẾ (VD: sản lượng, xuất khẩu, thời tiết, giá Robusta/Arabica). KHÔNG dùng từ ngữ chung chung sáo rỗng.
+      BẮT BUỘC TRẢ VỀ ĐÚNG CHUẨN JSON SAU:
+      {
+        "category": "Phân tích chuyên sâu",
+        "title": "Tiêu đề mang tính phân tích sắc bén, có chứa sự kiện/con số",
+        "summary": "Tóm tắt cốt lõi vấn đề trong 1 câu",
+        "content": [
+          {"type": "lead", "text": "Mở bài đưa ra bức tranh toàn cảnh hiện tại dựa trên số liệu vừa tìm được."},
+          {"type": "subheading", "text": "Diễn biến nguồn cung/nhu cầu"},
+          {"type": "paragraph", "text": "Phân tích cung cầu, tồn kho, xuất khẩu hoặc thời tiết cực kỳ chi tiết."},
+          {"type": "quote", "text": "Trích dẫn nhận định sâu sắc từ các tổ chức/quỹ đầu tư", "author": "Tên tổ chức uy tín (VD: ICO, Volcafe, Rabobank)"},
+          {"type": "paragraph", "text": "Dự báo tác động trực tiếp đến giá cà phê Việt Nam trong ngắn hạn."}
+        ]
+      }`;
+
+      const jsonStr = await callGeminiAPI(prompt, "Bạn là hệ thống viết báo cáo JSON tài chính.", true);
+      const realData = JSON.parse(jsonStr);
+
+      newArticle = {
+        id: `ai_news_${Date.now()}`,
+        category: realData.category || 'Phân tích chuyên sâu',
+        title: realData.title || 'Báo cáo xu hướng thị trường cà phê',
+        summary: realData.summary || 'Cập nhật phân tích cung cầu mới nhất.',
+        content: realData.content || [],
+        author: 'AI Chuyên gia',
+        readTime: '3 phút đọc',
+        time: 'Vừa xong',
+        image: `https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&q=80&w=800&sig=${Date.now()}`
+      };
+      showToast("Đã bổ sung bài phân tích mới ✨");
+    } catch (e) {
+      console.warn("Lỗi tạo tin AI, dùng Local");
+      newArticle = generateAutoNews();
+      showToast("Đã tải bài phân tích (Local) ✨");
+    }
+
+    const updatedNews = [newArticle, ...newsRef.current].slice(0, 30);
+    setNews(updatedNews);
+    setVisibleNewsCount(prev => prev + 1);
+
+    // LƯU TIN TỨC MỚI VÀO DATABASE
+    if (supabaseClient) {
+      try {
+        await supabaseClient.from('market_data').upsert({
+          id: 'news',
+          prices_json: { news: updatedNews, hotNews: hotNewsRef.current }
+        });
+      } catch (err) {
+        console.error("Lỗi đồng bộ DB", err);
+      }
+    }
+    
+    setIsRefreshingNews(false);
   };
 
   const handleRefresh = async (isAutoLoad = false) => {
@@ -398,7 +485,6 @@ export default function App() {
       updatedPrices = generateFallbackData();
     } else {
       try {
-        // TỐI ƯU 2: Nén Prompt ngắn nhất có thể, yêu cầu AI trả Raw JSON ngay lập tức để tiết kiệm token
         const prompt = `Bạn là bot lấy dữ liệu. Hãy duyệt web để lấy GIÁ CÀ PHÊ MỚI NHẤT HÔM NAY (Đắk Lắk, Lâm Đồng, Gia Lai, Đắk Nông, London, New York).
         BỎ QUA GIẢI THÍCH. TRẢ VỀ NGAY LẬP TỨC JSON SAU:
         {
@@ -565,7 +651,6 @@ export default function App() {
     }
   };
 
-  // --- UI Views ---
   const DashboardView = () => (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20 px-1 relative">
       <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-[2.5rem] p-6 text-white shadow-xl relative overflow-hidden">
@@ -621,7 +706,6 @@ export default function App() {
         </button>
       </div>
 
-      {/* TỐI ƯU 3: Lớp phủ Loading Scanner khi Refresh */}
       <div className="relative">
         {isRefreshing && (
           <div className="absolute inset-0 z-20 bg-white/60 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center animate-in fade-in duration-300">
@@ -829,7 +913,16 @@ export default function App() {
       <div className="space-y-4 relative z-10">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-black text-stone-900">Tin Tức Mới Nhất</h2>
-          <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{news.length} Bản tin</span>
+          <div className="flex items-center gap-3">
+             <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{news.length} Bản tin</span>
+             <button 
+               onClick={handleRefreshNews} 
+               disabled={isRefreshingNews}
+               className="p-2 bg-white rounded-xl shadow-sm border border-stone-100 text-emerald-600 active:scale-90 transition-all hover:bg-emerald-50"
+             >
+               <RotateCw size={14} className={isRefreshingNews ? 'animate-spin' : ''} />
+             </button>
+          </div>
         </div>
         {news.slice(0, visibleNewsCount).map(n => (
           <div key={n.id} onClick={() => setSelectedItem({...n, type: 'news'})} className="bg-white p-3 rounded-3xl flex gap-4 shadow-sm border border-stone-50 active:scale-98 transition-all cursor-pointer hover:border-emerald-100 group">
@@ -871,11 +964,11 @@ export default function App() {
     if (!selectedItem) return null;
     const isNews = selectedItem.type === 'news';
     
-    // TỐI ƯU 4: Fixed CSS Flexbox để đảm bảo nền trắng che kín 100% màn hình, sửa lỗi xuyên thấu
+    // Đã cấu trúc lại Layout Modal để không bao giờ bị cắt nền trắng dù màn hình dài ngắn ra sao
     return (
-      <div className="fixed inset-0 z-[100] bg-stone-900/40 backdrop-blur-sm overflow-y-auto flex flex-col items-center animate-in fade-in duration-200">
-        <div className="w-full max-w-md bg-white min-h-screen pb-20 shadow-2xl relative animate-in slide-in-from-bottom-8 duration-300">
-          <header className="sticky top-0 bg-white/90 backdrop-blur-md p-6 flex justify-between items-center z-20 border-b border-stone-50">
+      <div className="fixed inset-0 z-[100] bg-stone-900/60 backdrop-blur-sm flex justify-center animate-in fade-in duration-200">
+        <div className="w-full max-w-md h-full overflow-y-auto bg-white shadow-2xl relative animate-in slide-in-from-bottom-8 duration-300 flex flex-col">
+          <header className="sticky top-0 bg-white/90 backdrop-blur-md p-6 flex justify-between items-center z-20 border-b border-stone-50 shrink-0">
             <button onClick={() => setSelectedItem(null)} className="p-2.5 bg-stone-100 rounded-2xl text-stone-600 active:scale-90 transition-all"><ChevronLeft size={20} /></button>
             <div className="flex gap-2">
               {isNews && (
@@ -886,7 +979,8 @@ export default function App() {
               <button className="p-2.5 bg-stone-100 rounded-2xl text-stone-600"><Share2 size={20} /></button>
             </div>
           </header>
-          <main className="px-6 py-6 space-y-8 relative z-10 bg-white">
+          
+          <main className="px-6 py-6 pb-24 space-y-8 relative z-10 flex-1">
             {isNews ? (
               <>
                 <div className="relative">
