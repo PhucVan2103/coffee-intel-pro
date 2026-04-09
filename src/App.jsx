@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 // --- Gemini API Setup ---
-const apiKey = = import.meta.env.VITE_GEMINI_API_KEY; 
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
 
 const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân tích thị trường cà phê Việt Nam và thế giới.", isJson = false) => {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
@@ -31,23 +31,9 @@ const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const result = await response.json();
-      
-      let text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-      
-      // Làm sạch chuỗi JSON nếu AI trả về kèm các dấu backticks markdown hoặc văn bản rác
-      if (isJson && text) {
-        const match = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-        if (match) {
-          text = match[0];
-        } else {
-          text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-        }
-      }
-      
-      return text;
+      return result.candidates?.[0]?.content?.parts?.[0]?.text;
     } catch (err) {
       if (i === maxRetries - 1) throw err;
       const delay = Math.pow(2, i) * 1000;
@@ -60,73 +46,123 @@ const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL; 
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// --- Dữ liệu khởi tạo mặc định ---
+// --- Dữ liệu khởi tạo ---
 const INITIAL_HOT_NEWS = [
   { 
     id: 'h1', title: 'Brazil dự báo sản lượng niên vụ mới giảm 5% do khô hạn', tag: 'TIN NÓNG AI', type: 'alert', color: 'bg-stone-900',
     author: 'AI System', readTime: '3 phút đọc', time: 'Vừa cập nhật', category: 'Cảnh báo', image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&q=80&w=800',
     content: [
-      { type: 'lead', text: 'Hệ thống AI phát hiện rủi ro thời tiết cực đoan tại Brazil, dự báo có thể làm giảm 5% sản lượng cà phê niên vụ tới.' },
-      { type: 'paragraph', text: 'Phân tích từ dữ liệu vệ tinh cho thấy độ ẩm đất tại Minas Gerais đang ở ngưỡng báo động đỏ.' },
-      { type: 'quote', text: 'Thị trường đang phản ứng mạnh với các báo cáo khô hạn từ Nam Mỹ.', author: 'Nhận định từ chuyên gia ICO' }
+      { type: 'lead', text: 'Hệ thống AI vừa phát hiện rủi ro thời tiết cực đoan tại Brazil, dự báo có thể làm giảm 5% sản lượng cà phê niên vụ tới.' },
+      { type: 'paragraph', text: 'Theo các số liệu vệ tinh mới nhất, độ ẩm đất tại khu vực vành đai trồng cà phê Minas Gerais đã giảm xuống mức thấp kỷ lục trong vòng 5 năm qua. Tình trạng nắng nóng kéo dài đang gây sức ép nghiêm trọng lên sự phát triển của quả cà phê non.' },
+      { type: 'subheading', text: 'Tác động tức thì đến thị trường' },
+      { type: 'paragraph', text: 'Thông tin này ngay lập tức làm dấy lên làn sóng lo ngại trên các sàn giao dịch quốc tế. Nhiều quỹ đầu cơ đã bắt đầu chuyển hướng dòng vốn, gia tăng vị thế mua vào để phòng ngừa rủi ro thiếu hụt nguồn cung.' },
+      { type: 'quote', text: 'Mức giảm 5% tại Brazil tương đương với việc bốc hơi hàng triệu bao cà phê khỏi thị trường toàn cầu. Điều này chắc chắn sẽ tạo đà hỗ trợ vững chắc cho giá cà phê trong trung hạn.', author: 'Nhận định từ chuyên gia ICO' }
+    ]
+  },
+  { 
+    id: 'h2', title: 'Giá Robusta đạt đỉnh 15 năm trên sàn London sáng nay', tag: 'CẢNH BÁO GIÁ', type: 'trending', color: 'bg-emerald-900',
+    author: 'Market Bot', readTime: '2 phút đọc', time: '1 giờ trước', category: 'Thị trường', image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&q=80&w=800',
+    content: [
+      { type: 'lead', text: 'Sáng nay, giá cà phê Robusta trên sàn London đã chính thức phá vỡ cột mốc lịch sử, đạt mức cao nhất trong vòng 15 năm qua.' },
+      { type: 'paragraph', text: 'Động lực chính của đợt tăng giá điên cuồng này đến từ lực mua đầu cơ mạnh mẽ ngay từ những phút đầu mở phiên. Báo cáo tồn kho trên sàn tiếp tục sụt giảm, dấy lên hồi chuông cảnh báo về khả năng cạn kiệt nguồn cung hàng thực.' },
+      { type: 'subheading', text: 'Việt Nam giữ vai trò quyết định' },
+      { type: 'paragraph', text: 'Trong bối cảnh nguồn cung từ Indonesia và Brazil đều gặp vấn đề, mọi sự chú ý đang đổ dồn về Việt Nam. Tuy nhiên, lượng hàng trong dân không còn nhiều, trong khi các đại lý nội địa vẫn đang giữ tâm lý găm hàng chờ giá lên cao hơn nữa.' },
+      { type: 'quote', text: 'Thị trường đang ở trạng thái "Vắt trượt" (Backwardation) nghiêm trọng. Người mua sẵn sàng trả bất cứ giá nào để có được hàng giao ngay.', author: 'Chuyên gia Volcafe' }
     ]
   }
 ];
 
 const INITIAL_PRICES = {
   domestic: [
-    { id: 'daklak', province: 'Đắk Lắk', price: 85300, change: -400, history: [82000, 83500, 86000, 89300, 87000, 86000, 85300], high30d: 92000, low30d: 78000, trend: 'Bearish', analysis: 'Giá đang điều chỉnh nhẹ.' },
-    { id: 'lamdong', province: 'Lâm Đồng', price: 84700, change: -100, history: [81500, 82000, 85500, 88800, 86500, 85500, 84700], high30d: 91500, low30d: 77500, trend: 'Bearish', analysis: 'Tâm lý chốt lời ảnh hưởng giá.' },
-    { id: 'gialai', province: 'Gia Lai', price: 85100, change: +200, history: [81800, 83000, 85800, 89100, 86800, 85800, 85100], high30d: 91800, low30d: 78200, trend: 'Neutral', analysis: 'Lực mua vẫn ổn định.' },
+    { id: 'daklak', province: 'Đắk Lắk', price: 85300, change: -400, history: [82000, 83500, 86000, 89300, 87000, 86000, 85300], high30d: 92000, low30d: 78000, trend: 'Bearish', analysis: 'Giá đang điều chỉnh sau đợt tăng nóng.' },
+    { id: 'lamdong', province: 'Lâm Đồng', price: 84700, change: -100, history: [81500, 82000, 85500, 88800, 86500, 85500, 84700], high30d: 91500, low30d: 77500, trend: 'Bearish', analysis: 'Tâm lý chốt lời của nông dân ảnh hưởng giá.' },
+    { id: 'gialai', province: 'Gia Lai', price: 85100, change: +200, history: [81800, 83000, 85800, 89100, 86800, 85800, 85100], high30d: 91800, low30d: 78200, trend: 'Neutral', analysis: 'Lực mua từ các đơn vị XK vẫn ổn định.' },
     { id: 'daknong', province: 'Đắk Nông', price: 85200, change: +300, history: [81900, 83200, 85900, 89100, 86900, 85900, 85200], high30d: 91900, low30d: 78100, trend: 'Neutral', analysis: 'Nguồn cung hạn chế giúp giá vững.' },
   ],
   global: [
     { id: 'london', market: 'London (Robusta)', price: 3412, unit: 'USD/Tấn', change: -85, history: [3200, 3250, 3350, 3500, 3480, 3450, 3412], high30d: 3650, low30d: 3100, trend: 'Bullish', analysis: 'Thiếu hụt nguồn cung toàn cầu.' },
-    { id: 'newyork', market: 'New York (Arabica)', price: 212.45, unit: 'cts/lb', change: +1.2, history: [205.1, 208.4, 210.2, 215.0, 213.5, 211.2, 212.45], high30d: 225.0, low30d: 198.5, trend: 'Bullish', analysis: 'Lo ngại về thời tiết Brazil.' },
+    { id: 'newyork', market: 'New York (Arabica)', price: 212.45, unit: 'cts/lb', change: +1.2, history: [205.1, 208.4, 210.2, 215.0, 213.5, 211.2, 212.45], high30d: 225.0, low30d: 198.5, trend: 'Bullish', analysis: 'Lo ngại về thời tiết tại Brazil.' },
   ],
   brazil: {
     harvestProgress: 15, expectedOutput: '70.7M', outputChange: -2.3, weatherStatus: 'Khô hạn kéo dài',
     riskLevel: 'Nghiêm trọng', sentiment: 'Bullish', confidence: 88,
     portStatus: 'Kẹt cảng 12 ngày', soilMoisture: '28%', temperatureAnomaly: '+2.5°C',
-    regions: [{ name: 'Minas Gerais', status: 'Hạn hán', impact: 'Nặng' }],
-    deepAnalysis: ["Hiện tượng El Nino đang gây khô hạn nghiêm trọng tại Brazil.", "Độ ẩm đất tại Minas Gerais rơi xuống mức nguy hiểm.", "Về Logistics: Cảng Santos đang quá tải làm gián đoạn chuỗi cung ứng toàn cầu."]
+    regions: [
+      { name: 'Minas Gerais', status: 'Hạn hán', impact: 'Nặng' }, 
+      { name: 'Sao Paulo', status: 'Thiếu nước', impact: 'Trung bình' },
+      { name: 'Espírito Santo', status: 'Ổn định', impact: 'Thấp' }
+    ],
+    deepAnalysis: [
+      "Hiện tượng El Nino đang duy trì nền nhiệt cao hơn 2.5°C so với trung bình nhiều năm tại vành đai Arabica.",
+      "Độ ẩm đất tại Minas Gerais rơi xuống mức nguy hiểm (28%), đe dọa trực tiếp đến giai đoạn phát triển kích thước hạt, có thể làm giảm tỷ lệ hạt to (Screen 17/18).",
+      "Về Logistics: Cảng Santos đang quá tải, thời gian chờ bốc xếp kéo dài lên 12 ngày, làm gián đoạn chuỗi cung ứng và tạo độ trễ nguồn cung toàn cầu, trực tiếp đẩy giá Robusta thay thế lên cao."
+    ]
   },
   aiInsights: {
-    marketSentiment: 'Thận trọng', sentimentScore: 62, summary: 'Thị trường đang chốt lời ngắn hạn.', newsImpact: 'Tích cực trung hạn', recommendation: 'Ưu tiên giữ hàng.'
+    marketSentiment: 'Thận trọng', sentimentScore: 62, summary: 'Thị trường đang chốt lời ngắn hạn nhưng tin Brazil vẫn hỗ trợ giá.', newsImpact: 'Tích cực trung hạn', recommendation: 'Ưu tiên giữ hàng.'
   }
 };
 
-// Hàm sinh tin tức phân tích chuyên sâu (Local Fallback)
+const MOCK_NEWS = [
+  {
+    id: 'n1', category: 'Phân tích', title: 'Thiếu hụt Robusta Việt Nam và nghịch lý giá nội địa', author: 'Hiệp hội Cà phê', readTime: '5 phút đọc',
+    summary: 'Phân tích cấu trúc cung cầu khiến giá cà phê nội địa neo cao bất chấp áp lực chốt lời.', time: '1 giờ trước',
+    image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&q=80&w=800',
+    content: [
+      { type: 'lead', text: "Việt Nam đang bước vào giai đoạn cuối vụ thu hoạch với một nghịch lý lớn: Sản lượng thực tế thấp hơn đáng kể so với dự báo, khiến các nhà xuất khẩu chật vật gom hàng." },
+      { type: 'paragraph', text: "Theo nhiều thương lái tại Tây Nguyên, lượng hàng dự trữ trong dân hiện chỉ còn khoảng 30% so với thông lệ hàng năm. Đợt nắng nóng gay gắt kéo dài tại Đắk Lắk và Gia Lai trong mùa khô vừa qua đã làm giảm kích thước hạt và tỷ lệ đậu quả." },
+      { type: 'subheading', text: "Doanh nghiệp FDI khát hàng" },
+      { type: 'paragraph', text: "Các doanh nghiệp FDI đang chịu áp lực rất lớn phải giao hàng theo hợp đồng kỳ hạn đã ký. Để tránh bị phạt hợp đồng, họ buộc phải nâng giá thu mua nội địa liên tục, kéo theo mức chênh lệch (premium) so với giá sàn London lên mức dương kỷ lục." },
+      { type: 'quote', text: "Chúng tôi chưa bao giờ chứng kiến tình trạng khó gom hàng thực đến như vậy. Nông dân hiện nay rất nhạy bén với thông tin tài chính, họ áp dụng chiến lược 'bán nhỏ giọt' để tối ưu hóa lợi nhuận.", author: "Đại diện một nhà xuất khẩu lớn" },
+      { type: 'paragraph', text: "Trong ngắn hạn, cho đến khi nguồn cung mới từ Indonesia (bắt đầu thu hoạch vào tháng 5) tham gia vào thị trường, giá cà phê Việt Nam được dự báo sẽ tiếp tục neo ở mặt bằng giá rất cao." }
+    ]
+  },
+  {
+    id: 'n3', category: 'Logistics', title: 'Quy định EUDR cận kề: Rủi ro hay cơ hội cho Việt Nam?', author: 'Trần Hải', readTime: '4 phút đọc',
+    summary: 'Chỉ còn chưa đầy 1 năm trước khi Quy định chống phá rừng của EU chính thức có hiệu lực...', time: '5 giờ trước',
+    image: 'https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&q=80&w=800',
+    content: [
+      { type: 'lead', text: "Quy định chống phá rừng của Liên minh châu Âu (EUDR) đang tạo ra một cuộc chạy đua kiểm chuẩn (compliance) chưa từng có trong ngành cà phê." },
+      { type: 'paragraph', text: "Theo đó, 100% lô hàng cà phê xuất khẩu vào EU phải chứng minh được không có nguồn gốc từ đất rừng bị phá sau năm 2020. Điều này đòi hỏi hệ thống truy xuất nguồn gốc đến tận từng vườn cây bằng tọa độ GPS." },
+      { type: 'subheading', text: "Lợi thế cạnh tranh của Việt Nam" },
+      { type: 'paragraph', text: "Khác với châu Phi hay một số nước Nam Mỹ, hệ sinh thái cà phê Việt Nam phần lớn đã ổn định diện tích từ lâu và không dính dáng đến phá rừng nguyên sinh. Nếu số hóa dữ liệu nông hộ thành công, Việt Nam sẽ chiếm ưu thế tuyệt đối." },
+      { type: 'quote', text: "EUDR không phải là rào cản, mà là 'tấm vé vàng' để cà phê Việt Nam loại bỏ các đối thủ cạnh tranh không tuân thủ, từ đó đàm phán được mức giá cộng thêm (premium) tốt hơn tại thị trường châu Âu.", author: "Viện Chính sách Nông nghiệp" }
+    ]
+  }
+];
+
 const generateAutoNews = () => {
   const now = new Date();
   const topics = [
     {
-      title: "Phân tích: Quỹ đầu cơ tăng vị thế mua Robusta trên sàn London",
-      lead: "Báo cáo mới nhất cho thấy các quỹ quản lý vốn đã tăng 12% vị thế mua ròng đối với cà phê Robusta kỳ hạn tháng 7.",
-      para: "Đà tăng này được củng cố bởi thông tin sản lượng tại Việt Nam có thể sụt giảm do hiện tượng khô hạn cục bộ.",
-      quote: "Chúng tôi nhận thấy dòng tiền đang đổ mạnh vào hàng hóa nông sản như một kênh trú ẩn trước lạm phát.", author: "Phân tích từ SocGen"
+      title: "Quỹ đầu cơ xả hàng trên sàn ICE: Tín hiệu đảo chiều hay nhịp điều chỉnh?",
+      lead: "Dữ liệu COT (Commitment of Traders) mới nhất cho thấy các quỹ quản lý vốn đã giảm 15% vị thế mua ròng (net long) trên cả hai sàn giao dịch.",
+      para: "Mặc dù lực bán chốt lời xuất hiện, cấu trúc thiếu hụt nguồn cung cơ bản vẫn chưa được giải quyết. Giới phân tích cho rằng đây chỉ là nhịp điều chỉnh kỹ thuật lành mạnh để thị trường rũ bỏ áp lực margin, trước khi thiết lập mặt bằng giá mới dựa trên sự thiếu hụt hàng thực tế.",
+      quote: "Lực mua của giới công nghiệp (nhà rang xay) ở các vùng giá thấp vẫn rất mạnh, tạo ra một 'mức sàn cứng' hỗ trợ giá trong trung hạn.", author: "Tổ chức Cà phê Quốc tế (ICO)"
     },
     {
-      title: "Xu hướng xuất khẩu cà phê Việt Nam sang thị trường Trung Quốc tăng đột biến",
-      lead: "Trong 3 tháng đầu năm, kim ngạch xuất khẩu cà phê Việt Nam sang Trung Quốc tăng trưởng hơn 40%.",
-      para: "Nhu cầu tiêu thụ cà phê tại các thành phố lớn của Trung Quốc đang bùng nổ mạnh mẽ.",
-      quote: "Đây là thị trường tiềm năng có thể thay thế một phần nhu cầu đang bão hòa tại châu Âu.", author: "Đại diện VICOFA"
+      title: "Hiệu ứng El Nino tại Indonesia đe dọa nguồn cung Robusta toàn cầu",
+      lead: "Cơ quan Khí tượng Indonesia vừa xác nhận tình trạng lượng mưa thấp hơn 30% so với trung bình nhiều năm tại vùng trồng cà phê trọng điểm Sumatra.",
+      para: "Sản lượng của Indonesia - nhà sản xuất Robusta lớn thứ 3 thế giới - được dự báo sẽ giảm xuống mức thấp nhất trong 4 năm qua. Việc Indonesia thiếu hàng xuất khẩu sẽ đẩy áp lực cung ứng đè nặng lên vai Việt Nam, tiếp tục củng cố cấu trúc giá tăng trên sàn London.",
+      quote: "Khách hàng của chúng tôi tại châu Âu đang phải chuyển hướng các đơn hàng từ Sumatra sang Việt Nam bất chấp chi phí cước biển qua Biển Đỏ tăng vọt.", author: "Giám đốc cung ứng khu vực EU"
     }
   ];
   const selected = topics[Math.floor(Math.random() * topics.length)];
+
   return {
     id: `auto_${now.getTime()}`,
     category: 'Phân tích chuyên sâu',
     title: selected.title,
-    author: 'Hệ thống AI',
+    author: 'Chuyên gia AI',
     readTime: '4 phút đọc',
-    summary: selected.lead.substring(0, 80) + '...',
+    summary: selected.lead.substring(0, 70) + '...',
     time: 'Vừa xong',
     image: `https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&q=80&w=800&sig=${now.getTime()}`,
     content: [
       { type: 'lead', text: selected.lead },
       { type: 'paragraph', text: selected.para },
-      { type: 'quote', text: selected.quote, author: selected.author }
+      { type: 'quote', text: selected.quote, author: selected.author },
+      { type: 'paragraph', text: "Hệ thống AI của Coffee Intel Pro sẽ tiếp tục theo dõi biến động dòng tiền và cập nhật trong các bản tin tiếp theo." }
     ]
   };
 };
@@ -139,7 +175,7 @@ const generateAutoHotNews = () => {
   return {
     id: `hot_${now.getTime()}`,
     category: 'TIN NÓNG',
-    title: `Biến động bất thường lúc ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`,
+    title: `Biến động bất thường: Cập nhật dòng tiền quỹ đầu tư lúc ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`,
     tag: 'CẢNH BÁO AI',
     type: types[randIdx],
     color: colors[randIdx],
@@ -148,20 +184,19 @@ const generateAutoHotNews = () => {
     time: 'Vừa xong',
     image: `https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&q=80&w=800&sig=${now.getTime() + 1}`,
     content: [
-      { type: 'lead', text: `Hệ thống AI vừa quét và ghi nhận biến động bất thường của dòng tiền trên thị trường phái sinh.` },
-      { type: 'paragraph', text: "Khối lượng giao dịch tăng đột biến ở các hợp đồng kỳ hạn gần, cho thấy tín hiệu gom hàng thực." },
-      { type: 'quote', text: "Khuyến nghị nhà đầu tư theo dõi sát sao diễn biến.", author: "AI Coffee Intel" }
+      { type: 'lead', text: `Hệ thống AI vừa quét và ghi nhận những biến động bất thường của dòng tiền trên thị trường phái sinh vào lúc ${now.toLocaleTimeString('vi-VN')}.` },
+      { type: 'paragraph', text: "Theo phân tích thuật toán cấu trúc lệnh, các chỉ số kỹ thuật đang cho thấy sự thay đổi đột ngột trong tâm lý giao dịch của các quỹ đầu tư lớn. Khối lượng giao dịch tăng đột biến ở các hợp đồng kỳ hạn gần, cho thấy tín hiệu chuẩn bị gom hàng thực." },
+      { type: 'quote', text: "Chúng tôi khuyến nghị các nhà đầu tư và người nông dân nên theo dõi sát sao diễn biến trong 2-3 phiên giao dịch tiếp theo trước khi đưa ra quyết định chốt lời số lượng lớn.", author: "Hệ thống Cảnh báo AI Coffee Intel" }
     ]
   };
 };
 
 export default function App() {
-  const [isSystemReady, setIsSystemReady] = useState(false);
   const [supabaseClient, setSupabaseClient] = useState(null);
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [prices, setPrices] = useState(INITIAL_PRICES);
-  const [news, setNews] = useState([]);
+  const [news, setNews] = useState(MOCK_NEWS);
   const [hotNews, setHotNews] = useState(INITIAL_HOT_NEWS);
   const [visibleNewsCount, setVisibleNewsCount] = useState(3);
   const [bookmarks, setBookmarks] = useState([]);
@@ -173,8 +208,8 @@ export default function App() {
   const [toast, setToast] = useState(null);
   
   const pricesRef = useRef(prices);
-  const newsRef = useRef([]);
-  const hotNewsRef = useRef(INITIAL_HOT_NEWS);
+  const newsRef = useRef(news);
+  const hotNewsRef = useRef(hotNews);
 
   useEffect(() => { pricesRef.current = prices; }, [prices]);
   useEffect(() => { newsRef.current = news; }, [news]);
@@ -183,48 +218,36 @@ export default function App() {
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState(null);
 
-  // --- Initialize Scripts & Ensure Environment is Ready ---
+  // --- Initialize Scripts ---
   useEffect(() => {
-    let twReady = !!document.getElementById('tailwind-script');
-    let sbReady = !!window.supabase;
-
-    const checkAndSetReady = () => {
-      if (twReady && sbReady) setIsSystemReady(true);
-    };
-
-    if (!twReady) {
+    if (!document.getElementById('tailwind-script')) {
       const twScript = document.createElement('script');
       twScript.id = 'tailwind-script';
       twScript.src = "https://cdn.tailwindcss.com";
-      twScript.onload = () => { twReady = true; checkAndSetReady(); };
-      twScript.onerror = () => { twReady = true; checkAndSetReady(); }; 
       document.head.appendChild(twScript);
     }
 
-    if (!sbReady && !document.getElementById('supabase-script')) {
+    if (!document.getElementById('supabase-script')) {
       const sbScript = document.createElement('script');
       sbScript.id = 'supabase-script';
       sbScript.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
-      sbScript.onload = () => { 
-        sbReady = true; 
+      sbScript.async = true;
+      sbScript.onload = () => {
         if (supabaseUrl && supabaseKey && window.supabase) {
-          setSupabaseClient(window.supabase.createClient(supabaseUrl, supabaseKey));
+          const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+          setSupabaseClient(client);
         }
-        checkAndSetReady(); 
       };
-      sbScript.onerror = () => { sbReady = true; checkAndSetReady(); };
       document.head.appendChild(sbScript);
-    } else if (sbReady) {
-      if (supabaseUrl && supabaseKey && !supabaseClient) {
-        setSupabaseClient(window.supabase.createClient(supabaseUrl, supabaseKey));
-      }
-      checkAndSetReady();
+    } else if (window.supabase && supabaseUrl && supabaseKey && !supabaseClient) {
+      const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+      setSupabaseClient(client);
     }
-  }, []);
+  }, [supabaseClient]);
 
   // --- Auth ---
   useEffect(() => {
-    if (!isSystemReady || !supabaseClient) return;
+    if (!supabaseClient) return;
     const initAuth = async () => {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) setUser(session.user);
@@ -238,179 +261,340 @@ export default function App() {
       setUser(session?.user ?? null);
     });
     return () => authListener.subscription.unsubscribe();
-  }, [supabaseClient, isSystemReady]);
+  }, [supabaseClient]);
 
-  // --- Fetch Data & Realtime ---
+  // --- Fetch Data & Realtime (Gộp chung vào ID='latest') ---
   useEffect(() => {
-    if (!isSystemReady || !supabaseClient || !user) return;
+    if (!supabaseClient || !user) return;
     const fetchInitialData = async () => {
-      const { data: mData } = await supabaseClient.from('market_data').select('*').eq('id', 'latest').single();
-      if (mData?.prices_json) {
+      const { data: mData, error: mError } = await supabaseClient.from('market_data').select('*').eq('id', 'latest').single();
+      if (!mError && mData) {
         setPrices(mData.prices_json);
+        if (mData.prices_json.news) setNews(mData.prices_json.news);
         if (mData.prices_json.hotNews) setHotNews(mData.prices_json.hotNews);
-      } else {
-        await supabaseClient.from('market_data').upsert({ id: 'latest', prices_json: { ...INITIAL_PRICES, hotNews: INITIAL_HOT_NEWS } });
+        setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
+      } else if (mError?.code === 'PGRST116') {
+        const initData = { ...INITIAL_PRICES, news: MOCK_NEWS, hotNews: INITIAL_HOT_NEWS };
+        await supabaseClient.from('market_data').upsert({ id: 'latest', prices_json: initData });
       }
 
-      const { data: nData } = await supabaseClient.from('market_data').select('*').neq('id', 'latest');
-      if (nData) {
-        const newsList = nData
-          .map(row => row.prices_json)
-          .filter(item => item && item.type === 'news_article')
-          .sort((a, b) => b.timestamp - a.timestamp);
-        setNews(newsList);
+      const { data: uData, error: uError } = await supabaseClient.from('user_profiles').select('bookmarks').eq('user_id', user.id).single();
+      if (!uError && uData) setBookmarks(uData.bookmarks || []);
+      else if (uError?.code === 'PGRST116') {
+        await supabaseClient.from('user_profiles').upsert({ user_id: user.id, bookmarks: [] });
       }
-
-      const { data: uData } = await supabaseClient.from('user_profiles').select('bookmarks').eq('user_id', user.id).single();
-      if (uData) setBookmarks(uData.bookmarks || []);
     };
+
     fetchInitialData();
 
-    const channel = supabaseClient.channel('realtime-news')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_data' }, payload => {
-        if (payload.new && payload.new.id === 'latest') {
+    const channel = supabaseClient.channel('market-updates')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'market_data', filter: 'id=eq.latest' }, payload => {
+        if (payload.new && payload.new.prices_json) {
           setPrices(payload.new.prices_json);
-        } else if (payload.new && payload.new.prices_json?.type === 'news_article') {
-          setNews(prev => {
-            const exists = prev.some(n => n.id === payload.new.id);
-            if (exists) return prev;
-            return [payload.new.prices_json, ...prev].sort((a, b) => b.timestamp - a.timestamp);
-          });
+          if (payload.new.prices_json.news) setNews(payload.new.prices_json.news);
+          if (payload.new.prices_json.hotNews) setHotNews(payload.new.prices_json.hotNews);
+          setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
         }
       }).subscribe();
+
     return () => { supabaseClient.removeChannel(channel); };
-  }, [supabaseClient, user, isSystemReady]);
+  }, [supabaseClient, user]);
+
+  const hasAutoFetched = useRef(false);
+  useEffect(() => {
+    const isSupabaseReady = (supabaseUrl && supabaseKey) ? supabaseClient !== null : true;
+    if (!hasAutoFetched.current && apiKey && isSupabaseReady) {
+      hasAutoFetched.current = true;
+      setTimeout(() => {
+        handleRefresh(true);
+      }, 1500);
+    }
+  }, [supabaseClient]);
+
+  useEffect(() => {
+    if (activeTab === 'news' && !selectedItem) {
+      const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % hotNews.length), 4000);
+      return () => clearInterval(timer);
+    }
+  }, [activeTab, selectedItem, hotNews.length]);
+
+  // Sinh tin tức tự động định kỳ
+  useEffect(() => {
+    const INTERVAL_TIME = 10 * 60 * 1000; 
+    const interval = setInterval(() => {
+      const newArticle = generateAutoNews();
+      
+      // KIỂM TRA TRÙNG LẶP: Bỏ qua nếu tin đã tồn tại (dựa vào tiêu đề)
+      const isDuplicate = newsRef.current.some(n => n.title.trim().toLowerCase() === newArticle.title.trim().toLowerCase());
+      if (isDuplicate) return;
+
+      const updatedNews = [newArticle, ...newsRef.current].slice(0, 30);
+      
+      setNews(updatedNews);
+      setVisibleNewsCount(prev => prev + 1);
+
+      // LƯU DB VÀO 'latest' ĐỂ BẢO ĐẢM KHÔNG BỊ CHẶN BỞI RLS
+      if (supabaseClient) {
+        const updatedData = { ...pricesRef.current, news: updatedNews, hotNews: hotNewsRef.current };
+        supabaseClient.from('market_data').update({ prices_json: updatedData }).eq('id', 'latest');
+      }
+    }, INTERVAL_TIME);
+    return () => clearInterval(interval);
+  }, [supabaseClient]);
+
+  // Sinh tin NÓNG tự động định kỳ
+  useEffect(() => {
+    const ONE_HOURS = 1 * 60 * 60 * 1000; 
+    const interval = setInterval(() => {
+      const newHot = generateAutoHotNews();
+
+      // KIỂM TRA TRÙNG LẶP
+      const isDuplicate = hotNewsRef.current.some(h => h.title.trim().toLowerCase() === newHot.title.trim().toLowerCase());
+      if (isDuplicate) return;
+
+      const updatedHotNews = [newHot, ...hotNewsRef.current.slice(0, 2)];
+      
+      setHotNews(updatedHotNews);
+
+      // LƯU DB VÀO 'latest'
+      if (supabaseClient) {
+        const updatedData = { ...pricesRef.current, news: newsRef.current, hotNews: updatedHotNews };
+        supabaseClient.from('market_data').update({ prices_json: updatedData }).eq('id', 'latest');
+      }
+    }, ONE_HOURS);
+    return () => clearInterval(interval);
+  }, [supabaseClient]);
 
   const showToast = (msg) => {
-    setToast(String(msg));
+    setToast(msg);
     setTimeout(() => setToast(null), 2500);
   };
 
-  // --- Logic Chuyển Tab ---
   const handleTabChange = async (tab) => {
     if (activeTab !== tab) {
       setActiveTab(tab);
       setSelectedItem(null);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-
+    
     if (supabaseClient) {
       const { data, error } = await supabaseClient.from('market_data').select('*').eq('id', 'latest').single();
-      if (!error && data && data.prices_json) {
+      if (!error && data) {
         setPrices(data.prices_json);
+        if (data.prices_json.news) setNews(data.prices_json.news);
+        if (data.prices_json.hotNews) setHotNews(data.prices_json.hotNews);
         setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
       }
     }
   };
 
-  // --- Logic Tự động cập nhật Tin tức ---
   const handleRefreshNews = async () => {
     if (isRefreshingNews) return;
     setIsRefreshingNews(true);
-    showToast("AI đang thực hiện báo cáo chuyên sâu...");
+    showToast(apiKey ? "AI đang tổng hợp phân tích mới..." : "Đang tải phân tích chuyên sâu...");
+
+    let newArticle;
 
     try {
-      const prompt = `Bạn là chuyên gia kinh tế. Hãy duyệt web tìm dữ liệu MỚI NHẤT TRONG 24H QUA về cà phê. 
-      Viết 1 bài phân tích CHUYÊN SÂU. Trả về JSON:
-      {"category": "Phân tích vĩ mô", "title": "Tiêu đề mang tính thời sự", "summary": "Tóm tắt 1 câu", "content": [ {"type": "lead", "text": "..."}, {"type": "paragraph", "text": "..."} ]}`;
+      if (!apiKey) throw new Error("Chưa có API Key");
 
-      const jsonStr = await callGeminiAPI(prompt, "Bạn là máy viết báo cáo JSON chuyên sâu.", true);
-      
-      if (!jsonStr) throw new Error("API call failed");
-      
-      const data = JSON.parse(jsonStr);
+      const prompt = `Đóng vai một chuyên gia phân tích thị trường cà phê cấp cao. Hãy duyệt web tìm thông tin MỚI NHẤT HÔM NAY về thị trường cà phê toàn cầu và Việt Nam.
+      Viết 1 bản tin phân tích CHUYÊN SÂU, CÓ SỐ LIỆU THỰC TẾ (VD: sản lượng, xuất khẩu, thời tiết, giá Robusta/Arabica). KHÔNG dùng từ ngữ chung chung sáo rỗng.
+      BẮT BUỘC TRẢ VỀ ĐÚNG CHUẨN JSON SAU:
+      {
+        "category": "Phân tích chuyên sâu",
+        "title": "Tiêu đề mang tính phân tích sắc bén, có chứa sự kiện/con số",
+        "summary": "Tóm tắt cốt lõi vấn đề trong 1 câu",
+        "content": [
+          {"type": "lead", "text": "Mở bài đưa ra bức tranh toàn cảnh hiện tại dựa trên số liệu vừa tìm được."},
+          {"type": "subheading", "text": "Diễn biến nguồn cung/nhu cầu"},
+          {"type": "paragraph", "text": "Phân tích cung cầu, tồn kho, xuất khẩu hoặc thời tiết cực kỳ chi tiết."},
+          {"type": "quote", "text": "Trích dẫn nhận định sâu sắc từ các tổ chức/quỹ đầu tư", "author": "Tên tổ chức uy tín (VD: ICO, Volcafe, Rabobank)"},
+          {"type": "paragraph", "text": "Dự báo tác động trực tiếp đến giá cà phê Việt Nam trong ngắn hạn."}
+        ]
+      }`;
 
-      const newArticleId = `news_${Date.now()}`;
-      const newArticle = {
-        ...data,
-        id: newArticleId,
-        type: 'news_article',
-        timestamp: Date.now(),
-        author: 'Hệ thống AI Pro',
-        readTime: '4 phút đọc',
+      const jsonStr = await callGeminiAPI(prompt, "Bạn là hệ thống viết báo cáo JSON tài chính.", true);
+      const realData = JSON.parse(jsonStr);
+
+      newArticle = {
+        id: `ai_news_${Date.now()}`,
+        category: realData.category || 'Phân tích chuyên sâu',
+        title: realData.title || 'Báo cáo xu hướng thị trường cà phê',
+        summary: realData.summary || 'Cập nhật phân tích cung cầu mới nhất.',
+        content: realData.content || [],
+        author: 'AI Chuyên gia',
+        readTime: '3 phút đọc',
         time: 'Vừa xong',
-        image: `https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&q=80&w=800&sig=${Date.now()}`
+        image: `https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&q=80&w=800&sig=${Date.now()}`
       };
+      
+      // KIỂM TRA TRÙNG LẶP CHO TIN AI VIẾT
+      const isDuplicate = newsRef.current.some(n => 
+        n.title.trim().toLowerCase() === newArticle.title.trim().toLowerCase() ||
+        n.summary.trim().toLowerCase() === newArticle.summary.trim().toLowerCase()
+      );
 
-      const isDup = newsRef.current.some(n => String(n.title).trim().toLowerCase() === String(newArticle.title).trim().toLowerCase());
-      if (isDup) {
-        showToast("Bản tin đã có nội dung tương tự.");
+      if (isDuplicate) {
+        showToast("Bản tin mới bị trùng lặp nội dung, đã tự động hủy bỏ ✨");
         setIsRefreshingNews(false);
         return;
       }
 
-      if (supabaseClient) {
-        await supabaseClient.from('market_data').insert([{ id: newArticleId, prices_json: newArticle }]);
-        showToast("Đã lưu tin chuyên sâu vào Database ✨");
-      } else {
-        setNews(prev => [newArticle, ...prev]);
-        showToast("Đã cập nhật (Chế độ Local) ✨");
-      }
+      showToast("Đã bổ sung bài phân tích mới ✨");
     } catch (e) {
-      // Xóa console.error ở đây để ngăn log hiển thị lỗi đỏ 401 trên giao diện
-      showToast("Sử dụng bản tin dự phòng từ hệ thống.");
-      const fallbackArticle = generateAutoNews();
-      setNews(prev => [fallbackArticle, ...prev]);
-    } finally {
-      setIsRefreshingNews(false);
+      console.warn("Lỗi tạo tin AI, dùng Local");
+      newArticle = generateAutoNews();
+      
+      const isDuplicate = newsRef.current.some(n => n.title.trim() === newArticle.title.trim());
+      if (isDuplicate) {
+        showToast("Không tìm thấy tin tức mới, đã giữ nguyên bảng tin ✨");
+        setIsRefreshingNews(false);
+        return;
+      }
+      
+      showToast("Đã tải bài phân tích (Local) ✨");
     }
+
+    const updatedNews = [newArticle, ...newsRef.current].slice(0, 30);
+    setNews(updatedNews);
+    setVisibleNewsCount(prev => prev + 1);
+
+    // LƯU TIN TỨC VÀO DB
+    if (supabaseClient) {
+      try {
+        const updatedData = { ...pricesRef.current, news: updatedNews, hotNews: hotNewsRef.current };
+        await supabaseClient.from('market_data').update({ prices_json: updatedData }).eq('id', 'latest');
+      } catch (err) {
+        console.error("Lỗi đồng bộ DB", err);
+      }
+    }
+    
+    setIsRefreshingNews(false);
   };
 
-  const handleRefreshPrices = async () => {
+  const handleRefresh = async (isAutoLoad = false) => {
     if (isRefreshing) return;
     setIsRefreshing(true);
-    showToast("AI đang quét dữ liệu thị trường...");
     
-    try {
-      const prompt = `Lấy GIÁ CÀ PHÊ MỚI NHẤT HÔM NAY tại VN và thế giới. Trả về JSON CHÍNH XÁC cấu trúc sau:
-      {"domestic": [{"id": "daklak", "price": 105000, "change": 1000, "trend": "Bullish", "analysis": "..."}], "global": [{"id": "london", "price": 3200, "change": 15, "trend": "Bullish", "analysis": "..."}], "aiInsights": {"marketSentiment": "Tích cực", "sentimentScore": 85, "summary": "..."}}`;
-      
-      const jsonStr = await callGeminiAPI(prompt, "Bot lấy giá JSON nhanh.", true);
-      
-      if (!jsonStr) throw new Error("API call failed");
-      
-      const realData = JSON.parse(jsonStr);
+    if (!isAutoLoad) {
+      showToast(apiKey ? "AI đang duyệt web thu thập dữ liệu..." : "Đang làm mới giá (Chế độ Local)...");
+    } else if (apiKey) {
+      showToast("Tự động đồng bộ dữ liệu mới nhất ✨");
+    }
+    
+    let currentPrices = pricesRef.current || INITIAL_PRICES;
+    let updatedPrices = { ...currentPrices };
 
-      const updatedPrices = {
-        ...pricesRef.current,
-        domestic: pricesRef.current.domestic.map(old => ({...old, ...realData.domestic?.find(d => d.id === old.id)})),
-        global: pricesRef.current.global.map(old => ({...old, ...realData.global?.find(g => g.id === old.id)})),
-        aiInsights: realData.aiInsights || pricesRef.current.aiInsights
+    const generateFallbackData = () => {
+      const newDomestic = (currentPrices.domestic || []).map(p => ({
+        ...p, price: p.price + (Math.floor(Math.random() * 401) - 200), change: Math.floor(Math.random() * 800) - 400
+      }));
+      const newGlobal = (currentPrices.global || []).map(g => ({
+        ...g, price: g.price + parseFloat(((Math.random() * 10) - 5).toFixed(2)), change: Math.floor(Math.random() * 100) - 50
+      }));
+      return { 
+        ...currentPrices, 
+        domestic: newDomestic, 
+        global: newGlobal, 
+        aiInsights: { ...currentPrices.aiInsights, sentimentScore: Math.floor(Math.random() * 100) },
+        news: newsRef.current,
+        hotNews: hotNewsRef.current
       };
+    };
 
-      if (supabaseClient) {
-        await supabaseClient.from('market_data').upsert({ id: 'latest', prices_json: { ...updatedPrices, hotNews: hotNewsRef.current } });
-      } else {
-        setPrices(updatedPrices);
+    if (!apiKey) {
+      updatedPrices = generateFallbackData();
+    } else {
+      try {
+        const prompt = `Bạn là bot lấy dữ liệu. Hãy duyệt web để lấy GIÁ CÀ PHÊ MỚI NHẤT HÔM NAY (Đắk Lắk, Lâm Đồng, Gia Lai, Đắk Nông, London, New York).
+        BỎ QUA GIẢI THÍCH. TRẢ VỀ NGAY LẬP TỨC JSON SAU:
+        {
+          "domestic": [{"id": "daklak", "price": 105000, "change": 1000, "trend": "Bullish", "analysis": "ngắn gọn"}, {"id": "lamdong", "price": 104000, "change": 500, "trend": "Bullish", "analysis": "ngắn gọn"}, {"id": "gialai", "price": 104500, "change": 500, "trend": "Bullish", "analysis": "ngắn gọn"}, {"id": "daknong", "price": 105000, "change": 1000, "trend": "Bullish", "analysis": "ngắn gọn"}],
+          "global": [{"id": "london", "price": 3200, "change": 15, "trend": "Bullish", "analysis": "ngắn gọn"}, {"id": "newyork", "price": 210.5, "change": 2.1, "trend": "Bullish", "analysis": "ngắn gọn"}],
+          "aiInsights": {"marketSentiment": "Tích cực", "sentimentScore": 85, "summary": "tóm tắt thị trường"}
+        }`;
+        
+        const jsonStr = await callGeminiAPI(prompt, "Bạn là máy lấy dữ liệu JSON tốc độ cao.", true);
+        const realData = JSON.parse(jsonStr);
+
+        const newDomestic = currentPrices.domestic.map(old => {
+          const fresh = realData.domestic?.find(d => d.id === old.id) || {};
+          const newPrice = fresh.price || old.price;
+          return { ...old, ...fresh, history: [...old.history.slice(1), newPrice] };
+        });
+
+        const newGlobal = currentPrices.global.map(old => {
+          const fresh = realData.global?.find(g => g.id === old.id) || {};
+          const newPrice = fresh.price || old.price;
+          return { ...old, ...fresh, history: [...old.history.slice(1), newPrice] };
+        });
+
+        updatedPrices = { 
+          ...currentPrices, 
+          domestic: newDomestic, 
+          global: newGlobal, 
+          aiInsights: { ...currentPrices.aiInsights, ...realData.aiInsights },
+          news: newsRef.current,
+          hotNews: hotNewsRef.current
+        };
+      } catch (e) {
+        console.warn("Dùng dữ liệu dự phòng do lỗi/chậm lấy giá thực tế.");
+        updatedPrices = generateFallbackData();
       }
-      showToast("Cập nhật giá thành công ✨");
-    } catch (e) {
-      // Xóa console.error ở đây để ứng dụng thoái lui êm ái mà không spam báo lỗi
-      const fallbackPrices = { ...pricesRef.current };
-      fallbackPrices.domestic = fallbackPrices.domestic.map(p => ({ ...p, price: p.price + (Math.floor(Math.random() * 400) - 200) }));
-      setPrices(fallbackPrices);
-      showToast("Sử dụng dữ liệu giá mô phỏng (Local) ✨");
-    } finally {
+    }
+
+    setPrices(updatedPrices);
+    setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
+
+    if (!supabaseClient) {
+      if (!isAutoLoad) showToast("Đã cập nhật giá dự phòng (Local) ✨");
       setIsRefreshing(false);
-      setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
+      return;
+    }
+
+    try {
+      const { error } = await supabaseClient
+        .from('market_data')
+        .update({ prices_json: updatedPrices })
+        .eq('id', 'latest');
+      
+      if (error) throw error;
+      if (!isAutoLoad) showToast("Đã đồng bộ lên máy chủ ✨");
+    } catch (e) { 
+      if (!isAutoLoad) showToast("Lỗi đồng bộ, chỉ cập nhật Local"); 
+    } finally { 
+      setIsRefreshing(false); 
     }
   };
 
   const toggleBookmark = async (id) => {
     if (!user) return;
-    const next = bookmarks.includes(id) ? bookmarks.filter(b => b !== id) : [...bookmarks, id];
-    setBookmarks(next);
-    if (supabaseClient) await supabaseClient.from('user_profiles').update({ bookmarks: next }).eq('user_id', user.id);
+    const isBookmarked = bookmarks.includes(id);
+    const next = isBookmarked ? bookmarks.filter(b => b !== id) : [...bookmarks, id];
+    
+    if (!supabaseClient) {
+      setBookmarks(next);
+      showToast(isBookmarked ? "Đã gỡ lưu (Local)" : "Đã lưu tin (Local) ✨");
+      return;
+    }
+
+    try {
+      const { error } = await supabaseClient.from('user_profiles').update({ bookmarks: next }).eq('user_id', user.id);
+      if (error) throw error;
+      setBookmarks(next);
+      showToast(isBookmarked ? "Đã gỡ lưu" : "Đã lưu tin ✨");
+    } catch (e) { showToast("Lỗi lưu dữ liệu"); }
   };
 
   const handleAiMarketAnalysis = async () => {
+    if (!apiKey) { showToast("Vui lòng cấu hình Gemini API Key"); return; }
     setIsAiAnalyzing(true);
     setAiAnalysisResult(null);
     try {
-      const prompt = `Dựa trên dữ liệu giá cà phê. Đưa ra 1 tóm tắt thị trường ngắn gọn (3 dòng).`;
-      const result = await callGeminiAPI(prompt, "Bạn là chuyên gia kinh tế.");
-      if (!result) throw new Error("API call failed");
-      setAiAnalysisResult(String(result));
+      const prompt = `Dựa trên dữ liệu giá cà phê sau: Nội địa: ${prices.domestic.map(p => `${p.province}: ${p.price}đ`).join(', ')}. Thế giới: ${prices.global.map(g => `${g.market}: ${g.price}`).join(', ')}. Tin tức Brazil: ${prices.brazil.weatherStatus}, tiến độ ${prices.brazil.harvestProgress}%. Hãy đưa ra 1 tóm tắt thị trường ngắn gọn (3 dòng) và lời khuyên 'Mua', 'Bán' hoặc 'Chờ' cho nông dân Việt Nam.`;
+      const result = await callGeminiAPI(prompt, "Bạn là chuyên gia kinh tế cao cấp ngành cà phê.");
+      setAiAnalysisResult(result);
     } catch (err) {
       showToast("AI đang bận, vui lòng thử lại sau.");
     } finally {
@@ -419,29 +603,32 @@ export default function App() {
   };
 
   const handleAiSummarizeNews = async (newsItem) => {
+    if (!apiKey) { showToast("Vui lòng cấu hình Gemini API Key"); return; }
     setIsAiAnalyzing(true);
     try {
-      const contentText = Array.isArray(newsItem.content) ? newsItem.content.map(b => typeof b === 'string' ? b : b.text).join(' ') : '';
-      const prompt = `Tóm tắt tin tức sau: ${newsItem.title}. Nội dung: ${contentText}`;
-      const result = await callGeminiAPI(prompt, "Bạn là trợ lý AI tóm tắt tin tức.");
-      if (!result) throw new Error("API call failed");
-      setSelectedItem({ ...newsItem, aiSummary: String(result), type: 'news' });
+      const contentText = Array.isArray(newsItem.content) 
+        ? newsItem.content.map(block => typeof block === 'string' ? block : block.text).join(' ') 
+        : '';
+        
+      const prompt = `Tóm tắt tin tức sau thành 3 ý chính quan trọng nhất cho người kinh doanh cà phê: Tiêu đề: ${newsItem.title}. Nội dung: ${contentText}. Hãy dùng icon để đánh dấu các ý.`;
+      const result = await callGeminiAPI(prompt, "Bạn là trợ lý AI tóm tắt tin tức kinh tế.");
+      setSelectedItem({ ...newsItem, aiSummary: result, type: 'news' });
     } catch (err) {
-      showToast("Tóm tắt AI hiện không khả dụng.");
+      showToast("AI tóm tắt gặp lỗi.");
     } finally {
       setIsAiAnalyzing(false);
     }
   };
 
   const handleAiPredictTrend = async (priceItem) => {
+    if (!apiKey) { showToast("Vui lòng cấu hình Gemini API Key"); return; }
     setIsAiAnalyzing(true);
     try {
-      const prompt = `Dự báo giá vùng ${priceItem.province || priceItem.market}. Giá hiện tại: ${priceItem.price}. Trả lời ngắn gọn.`;
-      const result = await callGeminiAPI(prompt, "Bạn là máy học dự báo tài chính.");
-      if (!result) throw new Error("API call failed");
-      setSelectedItem({ ...priceItem, aiPrediction: String(result), type: 'price' });
+      const prompt = `Phân tích lịch sử giá vùng ${priceItem.province || priceItem.market}: ${priceItem.history.join(', ')}. Giá hiện tại: ${priceItem.price}. Với xu hướng ${priceItem.trend}, hãy dự báo giá trong 3 ngày tới và đưa ra 1 hành động cụ thể ✨. Trả lời thật ngắn gọn.`;
+      const result = await callGeminiAPI(prompt, "Bạn là máy học dự báo tài chính cà phê.");
+      setSelectedItem({ ...priceItem, aiPrediction: result, type: 'price' });
     } catch (err) {
-      showToast("Dự báo AI hiện không khả dụng.");
+      showToast("Dự báo AI thất bại.");
     } finally {
       setIsAiAnalyzing(false);
     }
@@ -452,11 +639,27 @@ export default function App() {
     const min = Math.min(...history);
     const max = Math.max(...history);
     const range = (max - min) || 1;
+    
+    const width = 64;
+    const height = 32;
+    const strokeWidth = 2.5;
+    
+    const points = history.map((d, i) => {
+      const x = (i / (history.length - 1)) * (width - strokeWidth * 2) + strokeWidth;
+      const y = height - (((d - min) / range) * (height - strokeWidth * 2)) - strokeWidth;
+      return `${x},${y}`;
+    }).join(' ');
+
     return (
-      <div className="w-16 h-8 shrink-0">
-        <svg viewBox="0 0 64 32" className="w-full h-full overflow-visible block">
-          <polyline fill="none" stroke={isNegative ? "#ef4444" : "#10b981"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" 
-            points={history.map((d, i) => `${(i/(history.length-1))*60+2},${30-((d-min)/range)*26-2}`).join(' ')} 
+      <div className="w-16 h-8 shrink-0 flex items-center justify-center">
+        <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} className="overflow-visible block">
+          <polyline 
+            fill="none" 
+            stroke={isNegative ? "#ef4444" : "#10b981"} 
+            strokeWidth={strokeWidth} 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            points={points} 
           />
         </svg>
       </div>
@@ -472,28 +675,31 @@ export default function App() {
     }
   };
 
-  // --- RENDER VIEWS (SAFE FUNCTIONS) ---
-  const renderDashboardView = () => (
+  const DashboardView = () => (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20 px-1 relative">
       <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-[2.5rem] p-6 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">AI Market Intelligence</h3>
             <span className="bg-white/20 px-3 py-1 rounded-full text-[9px] font-black flex items-center gap-2">
-              <Gauge size={12} /> Score: {String(prices.aiInsights?.sentimentScore || 0)}
+              <Gauge size={12} /> Score: {prices.aiInsights?.sentimentScore || 0}
             </span>
           </div>
           
           <div className="flex items-center gap-4 mb-4">
-            <div className="text-4xl font-black">{String(prices.aiInsights?.marketSentiment || '---')}</div>
+            <div className="text-4xl font-black">{prices.aiInsights?.marketSentiment || '---'}</div>
             <div className="h-10 w-px bg-white/20"></div>
             <p className="text-xs font-medium opacity-90 leading-relaxed line-clamp-2">
-              {String(prices.aiInsights?.summary || 'Đang chờ phân tích dữ liệu thị trường')}
+              {prices.aiInsights?.summary}
             </p>
           </div>
 
           {!aiAnalysisResult ? (
-            <button onClick={() => handleAiMarketAnalysis()} disabled={isAiAnalyzing} className="w-full flex items-center justify-center gap-2 bg-white text-emerald-800 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50">
+            <button 
+              onClick={() => handleAiMarketAnalysis()}
+              disabled={isAiAnalyzing}
+              className="w-full flex items-center justify-center gap-2 bg-white text-emerald-800 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
+            >
               {isAiAnalyzing ? <RotateCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
               {isAiAnalyzing ? "Đang phân tích..." : "Phân tích thị trường tổng thể ✨"}
             </button>
@@ -503,7 +709,7 @@ export default function App() {
                 <span className="text-[9px] font-black text-emerald-300 uppercase tracking-widest">Dự báo Gemini ✨</span>
                 <button onClick={() => setAiAnalysisResult(null)}><X size={12} /></button>
               </div>
-              <p className="text-[11px] leading-relaxed opacity-90 italic">"{String(aiAnalysisResult)}"</p>
+              <p className="text-[11px] leading-relaxed opacity-90 italic">"{aiAnalysisResult}"</p>
             </div>
           )}
         </div>
@@ -515,7 +721,11 @@ export default function App() {
           <h2 className="text-xl font-black text-stone-900">Bảng Giá</h2>
           <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">Cập nhật: {lastUpdate}</p>
         </div>
-        <button onClick={handleRefreshPrices} disabled={isRefreshing} className={`p-3 bg-white rounded-2xl shadow-sm border border-stone-100 text-emerald-600 active:scale-90 transition-all ${isRefreshing ? 'opacity-50' : ''}`}>
+        <button 
+          onClick={() => handleRefresh(false)} 
+          disabled={isRefreshing}
+          className={`p-3 bg-white rounded-2xl shadow-sm border border-stone-100 text-emerald-600 active:scale-90 transition-all ${isRefreshing ? 'opacity-50' : ''}`}
+        >
           <RotateCw size={18} className={isRefreshing ? 'animate-spin' : ''} />
         </button>
       </div>
@@ -538,16 +748,16 @@ export default function App() {
             {prices?.domestic?.map(item => (
               <div key={item.id} onClick={() => setSelectedItem({...item, type: 'price'})} className="bg-white p-4 rounded-3xl shadow-sm border border-stone-100 active:scale-95 transition-all cursor-pointer">
                 <div className="flex justify-between items-start">
-                  <p className="text-[9px] font-black text-stone-400 uppercase">{String(item.province)}</p>
+                  <p className="text-[9px] font-black text-stone-400 uppercase">{item.province}</p>
                   {renderSparkline(item.history, item.change < 0)}
                 </div>
                 <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-xl font-black text-stone-900">{Number(item.price || 0).toLocaleString()}</span>
+                  <span className="text-xl font-black text-stone-900">{item.price?.toLocaleString()}</span>
                   <span className="text-[9px] text-stone-400 font-bold uppercase">đ/kg</span>
                 </div>
                 <div className={`flex items-center gap-1 text-[10px] font-black mt-1 ${item.change < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
                   {item.change < 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
-                  {Math.abs(Number(item.change || 0)).toLocaleString()}đ
+                  {Math.abs(item.change || 0).toLocaleString()}đ
                 </div>
               </div>
             ))}
@@ -562,13 +772,13 @@ export default function App() {
             {prices?.global?.map(item => (
               <div key={item.id} onClick={() => setSelectedItem({...item, type: 'price'})} className="bg-stone-900 p-4 rounded-[2rem] flex justify-between items-center active:bg-stone-800 transition-all cursor-pointer">
                 <div className="flex-1">
-                  <p className="text-stone-500 text-[9px] font-black uppercase">{String(item.market)}</p>
-                  <p className="text-xl font-black text-white mt-1">{Number(item.price || 0).toLocaleString()} <span className="text-[10px] text-stone-500 font-bold">{String(item.unit)}</span></p>
+                  <p className="text-stone-500 text-[9px] font-black uppercase">{item.market}</p>
+                  <p className="text-xl font-black text-white mt-1">{item.price?.toLocaleString()} <span className="text-[10px] text-stone-500 font-bold">{item.unit}</span></p>
                 </div>
                 <div className="flex items-center gap-4">
                   {renderSparkline(item.history, item.change < 0)}
                   <div className={`px-3 py-1 rounded-full text-[10px] font-black ${item.change < 0 ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                    {item.change > 0 ? '+' : ''}{Number(item.change || 0)}
+                    {item.change > 0 ? '+' : ''}{item.change}
                   </div>
                 </div>
               </div>
@@ -579,7 +789,7 @@ export default function App() {
     </div>
   );
 
-  const renderBrazilView = () => (
+  const BrazilView = () => (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24 px-1">
       <div className="relative h-56 bg-stone-800 rounded-[2.5rem] overflow-hidden shadow-2xl">
         <img src="https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover opacity-60" alt="" />
@@ -589,7 +799,7 @@ export default function App() {
             <span className="text-stone-300 text-[10px] font-bold uppercase tracking-widest">Brazil Intel</span>
           </div>
           <h2 className="text-white text-2xl font-black">Tình Hình Cung Ứng</h2>
-          <p className="text-emerald-400 text-sm font-black mt-1">Xu hướng: {String(prices.brazil?.sentiment || '')}</p>
+          <p className="text-emerald-400 text-sm font-black mt-1">Xu hướng: {prices.brazil?.sentiment}</p>
         </div>
       </div>
 
@@ -597,7 +807,7 @@ export default function App() {
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-stone-100">
           <p className="text-[10px] font-black text-stone-400 uppercase mb-2">TIẾN ĐỘ THU HOẠCH</p>
           <div className="flex items-end gap-2">
-            <p className="text-3xl font-black text-stone-800">{String(prices.brazil?.harvestProgress || 0)}%</p>
+            <p className="text-3xl font-black text-stone-800">{prices.brazil?.harvestProgress || 0}%</p>
             <span className="text-[9px] text-emerald-500 font-bold mb-1">+2%/Tuần</span>
           </div>
           <div className="w-full bg-stone-100 h-1.5 rounded-full mt-3 overflow-hidden">
@@ -606,9 +816,9 @@ export default function App() {
         </div>
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-stone-100">
           <p className="text-[10px] font-black text-stone-400 uppercase mb-2">SẢN LƯỢNG DỰ BÁO</p>
-          <p className="text-3xl font-black text-stone-800">{String(prices.brazil?.expectedOutput || '')}</p>
+          <p className="text-3xl font-black text-stone-800">{prices.brazil?.expectedOutput}</p>
           <p className="text-[9px] text-red-500 font-bold mt-2 flex items-center gap-1">
-            <TrendingDown size={10} /> Giảm {Math.abs(Number(prices.brazil?.outputChange || 0))}%
+            <TrendingDown size={10} /> Giảm {Math.abs(prices.brazil?.outputChange || 0)}%
           </p>
         </div>
       </div>
@@ -622,28 +832,28 @@ export default function App() {
             <div className="p-2 bg-amber-50 rounded-xl text-amber-600"><Thermometer size={16} /></div>
             <div>
               <p className="text-[9px] font-black text-stone-400 uppercase mb-1">Nhiệt độ</p>
-              <p className="text-sm font-black text-stone-900">{String(prices.brazil?.temperatureAnomaly || '')}</p>
+              <p className="text-sm font-black text-stone-900">{prices.brazil?.temperatureAnomaly || '+2.5°C'}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <div className="p-2 bg-blue-50 rounded-xl text-blue-600"><Droplets size={16} /></div>
             <div>
               <p className="text-[9px] font-black text-stone-400 uppercase mb-1">Độ ẩm đất</p>
-              <p className="text-sm font-black text-red-500">{String(prices.brazil?.soilMoisture || '')}</p>
+              <p className="text-sm font-black text-red-500">{prices.brazil?.soilMoisture || '28%'}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <div className="p-2 bg-purple-50 rounded-xl text-purple-600"><Globe size={16} /></div>
             <div>
               <p className="text-[9px] font-black text-stone-400 uppercase mb-1">Cảng Santos</p>
-              <p className="text-sm font-black text-stone-900">{String(prices.brazil?.portStatus || '')}</p>
+              <p className="text-sm font-black text-stone-900">{prices.brazil?.portStatus || 'Kẹt 12 ngày'}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <div className="p-2 bg-red-50 rounded-xl text-red-600"><AlertTriangle size={16} /></div>
             <div>
               <p className="text-[9px] font-black text-stone-400 uppercase mb-1">Mức rủi ro</p>
-              <p className="text-sm font-black text-red-500">{String(prices.brazil?.riskLevel || '')}</p>
+              <p className="text-sm font-black text-red-500">{prices.brazil?.riskLevel || 'Nghiêm trọng'}</p>
             </div>
           </div>
         </div>
@@ -655,14 +865,16 @@ export default function App() {
             <ShieldCheck className="text-emerald-400" size={24} />
             <div>
               <h3 className="text-xs font-black uppercase tracking-widest">Đánh giá AI chuyên sâu</h3>
-              <p className="text-[10px] text-stone-500 font-bold uppercase">Độ tin cậy: {String(prices.brazil?.confidence || 0)}%</p>
+              <p className="text-[10px] text-stone-500 font-bold uppercase">Độ tin cậy: {prices.brazil?.confidence || 0}%</p>
             </div>
           </div>
           
           <div className="space-y-3">
-            {(prices.brazil?.deepAnalysis || []).map((paragraph, idx) => (
+            {(prices.brazil?.deepAnalysis || [
+              "Hạn hán tại Minas Gerais ảnh hưởng trực tiếp đến quy mô hạt, đẩy giá Arabica New York tăng nóng."
+            ]).map((paragraph, idx) => (
               <p key={idx} className="text-[13px] text-stone-300 leading-relaxed italic bg-white/5 p-4 rounded-2xl border border-white/5">
-                "{String(paragraph)}"
+                "{paragraph}"
               </p>
             ))}
           </div>
@@ -672,9 +884,9 @@ export default function App() {
             <div className="space-y-2">
               {prices.brazil?.regions?.map((reg, idx) => (
                 <div key={idx} className="flex justify-between items-center p-3 bg-black/20 rounded-2xl border border-white/5">
-                  <span className="text-xs font-bold text-stone-200">{String(reg.name)}</span>
+                  <span className="text-xs font-bold text-stone-200">{reg.name}</span>
                   <span className={`text-[9px] font-black px-3 py-1 rounded-full ${reg.impact === 'Nặng' ? 'bg-red-500/20 text-red-400' : reg.impact === 'Trung bình' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                    TÁC ĐỘNG: {String(reg.impact)}
+                    TÁC ĐỘNG: {reg.impact}
                   </span>
                 </div>
               ))}
@@ -686,7 +898,7 @@ export default function App() {
     </div>
   );
 
-  const renderNewsView = () => (
+  const NewsView = () => (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20 px-1">
       <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 flex gap-4 items-start shadow-sm relative z-10">
         <div className="bg-amber-500 p-2.5 rounded-2xl text-white shadow-md shadow-amber-200 shrink-0">
@@ -695,7 +907,7 @@ export default function App() {
         <div>
           <h4 className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-1">Tóm lược AI ngày {new Date().toLocaleDateString('vi-VN')}</h4>
           <p className="text-xs text-amber-900/80 leading-relaxed font-medium">
-            Tin tức cho thấy <span className="font-bold text-emerald-700">tác động {String(prices.aiInsights?.newsImpact || 'tích cực')}</span>. 
+            Tin tức cho thấy <span className="font-bold text-emerald-700">tác động {prices.aiInsights?.newsImpact || 'tích cực'}</span>. 
             Xuất khẩu kỷ lục và hạn hán Brazil duy trì đà tăng cho Robusta Việt Nam.
           </p>
         </div>
@@ -704,13 +916,16 @@ export default function App() {
       <div className="relative overflow-hidden rounded-[2.5rem] group h-44 shadow-xl border border-stone-100 z-10">
         <div className="flex h-full transition-transform duration-700 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
           {hotNews.map((hot) => (
-            <div key={hot.id} className={`min-w-full ${String(hot.color)} p-6 text-white relative flex flex-col justify-center`}>
+            <div key={hot.id} className={`min-w-full ${hot.color} p-6 text-white relative flex flex-col justify-center`}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span>
-                <h3 className="text-emerald-400 font-black text-[10px] uppercase tracking-widest">{String(hot.tag)}</h3>
+                <h3 className="text-emerald-400 font-black text-[10px] uppercase tracking-widest">{hot.tag}</h3>
               </div>
-              <p className="text-lg font-bold leading-tight mb-4 pr-16 relative z-10 line-clamp-2">{String(hot.title)}</p>
-              <button onClick={() => setSelectedItem({ ...hot, type: 'news' })} className="flex items-center gap-2 text-[10px] font-black bg-white/10 px-4 py-2 rounded-full w-fit uppercase border border-white/10 relative z-10 hover:bg-white/20 transition-all cursor-pointer">
+              <p className="text-lg font-bold leading-tight mb-4 pr-16 relative z-10 line-clamp-2">{hot.title}</p>
+              <button 
+                onClick={() => setSelectedItem({ ...hot, type: 'news' })}
+                className="flex items-center gap-2 text-[10px] font-black bg-white/10 px-4 py-2 rounded-full w-fit uppercase border border-white/10 relative z-10 hover:bg-white/20 transition-all cursor-pointer"
+              >
                 Đọc nhanh <ArrowRight size={14} />
               </button>
               <div className="absolute right-[-10px] bottom-[-10px] opacity-10 pointer-events-none">{getHotIcon(hot.type)}</div>
@@ -724,7 +939,11 @@ export default function App() {
           <h2 className="text-lg font-black text-stone-900">Tin Tức Mới Nhất</h2>
           <div className="flex items-center gap-3">
              <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{news.length} Bản tin</span>
-             <button onClick={handleRefreshNews} disabled={isRefreshingNews} className="p-2 bg-white rounded-xl shadow-sm border border-stone-100 text-emerald-600 active:scale-90 transition-all hover:bg-emerald-50">
+             <button 
+               onClick={handleRefreshNews} 
+               disabled={isRefreshingNews}
+               className="p-2 bg-white rounded-xl shadow-sm border border-stone-100 text-emerald-600 active:scale-90 transition-all hover:bg-emerald-50"
+             >
                <RotateCw size={14} className={isRefreshingNews ? 'animate-spin' : ''} />
              </button>
           </div>
@@ -734,26 +953,30 @@ export default function App() {
             <div className="relative shrink-0">
               <img src={n.image} className="w-24 h-24 object-cover rounded-2xl" alt="" />
               <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-lg">
-                 <p className="text-[8px] font-black text-stone-900 uppercase">{String(n.readTime)}</p>
+                 <p className="text-[8px] font-black text-stone-900 uppercase">{n.readTime}</p>
               </div>
             </div>
             <div className="flex flex-col justify-between py-1 flex-1">
               <div>
-                <p className="text-[9px] font-black text-emerald-600 uppercase mb-1">{String(n.category)}</p>
-                <h4 className="text-sm font-bold text-stone-900 leading-tight line-clamp-2 group-hover:text-emerald-700 transition-colors">{String(n.title)}</h4>
+                <p className="text-[9px] font-black text-emerald-600 uppercase mb-1">{n.category}</p>
+                <h4 className="text-sm font-bold text-stone-900 leading-tight line-clamp-2 group-hover:text-emerald-700 transition-colors">{n.title}</h4>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <Clock size={10} className="text-stone-300" />
-                  <span className="text-[9px] text-stone-400 font-black uppercase">{String(n.time)}</span>
+                  <span className="text-[9px] text-stone-400 font-black uppercase">{n.time}</span>
                 </div>
                 {bookmarks.includes(n.id) && <Bookmark size={12} className="text-emerald-500 fill-current" />}
               </div>
             </div>
           </div>
         ))}
+        
         {visibleNewsCount < news.length && (
-          <button onClick={() => setVisibleNewsCount(prev => prev + 3)} className="w-full py-4 mt-2 bg-stone-100 text-stone-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-stone-200 active:scale-95 transition-all">
+          <button 
+            onClick={() => setVisibleNewsCount(prev => prev + 3)}
+            className="w-full py-4 mt-2 bg-stone-100 text-stone-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-stone-200 active:scale-95 transition-all"
+          >
             Tải thêm tin tức
           </button>
         )}
@@ -761,13 +984,13 @@ export default function App() {
     </div>
   );
 
-  const renderDetailOverlay = () => {
+  const DetailOverlay = () => {
     if (!selectedItem) return null;
-    const isNews = (selectedItem.type === 'news' || selectedItem.type === 'news_article');
+    const isNews = selectedItem.type === 'news';
     
     return (
-      <div className="fixed inset-0 z-[100] bg-stone-900/60 backdrop-blur-sm flex justify-center animate-in fade-in duration-200">
-        <div className="w-full max-w-md h-full overflow-y-auto bg-white shadow-2xl relative animate-in slide-in-from-bottom-8 duration-300 flex flex-col">
+      <div className="fixed inset-0 z-[100] bg-stone-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200 block">
+        <div className="w-full max-w-md mx-auto bg-white min-h-[100dvh] shadow-2xl relative animate-in slide-in-from-bottom-8 duration-300 flex flex-col">
           <header className="sticky top-0 bg-white/90 backdrop-blur-md p-6 flex justify-between items-center z-20 border-b border-stone-50 shrink-0">
             <button onClick={() => setSelectedItem(null)} className="p-2.5 bg-stone-100 rounded-2xl text-stone-600 active:scale-90 transition-all"><ChevronLeft size={20} /></button>
             <div className="flex gap-2">
@@ -787,16 +1010,16 @@ export default function App() {
                    <img src={selectedItem.image} className="w-full h-64 object-cover rounded-[3rem] shadow-xl" alt="" />
                    <div className="absolute -bottom-4 right-8 bg-white px-6 py-3 rounded-2xl shadow-lg border border-stone-50">
                       <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Tác giả</p>
-                      <p className="text-xs font-bold text-stone-900">{String(selectedItem.author || 'Hệ thống AI')}</p>
+                      <p className="text-xs font-bold text-stone-900">{selectedItem.author}</p>
                    </div>
                 </div>
                 <div className="flex gap-3 items-center text-[10px] font-black text-stone-400 uppercase pt-4">
-                  <span className="bg-emerald-100 text-emerald-600 px-4 py-1.5 rounded-full">{String(selectedItem.category || 'Tin tức')}</span>
-                  <span>{String(selectedItem.readTime || '3 phút đọc')}</span>
+                  <span className="bg-emerald-100 text-emerald-600 px-4 py-1.5 rounded-full">{selectedItem.category}</span>
+                  <span>{selectedItem.readTime}</span>
                   <span>•</span>
-                  <span>{String(selectedItem.time || 'Vừa xong')}</span>
+                  <span>{selectedItem.time}</span>
                 </div>
-                <h1 className="text-3xl font-black text-stone-900 leading-tight">{String(selectedItem.title || '')}</h1>
+                <h1 className="text-3xl font-black text-stone-900 leading-tight">{selectedItem.title}</h1>
                 
                 <button 
                   onClick={() => handleAiSummarizeNews(selectedItem)}
@@ -810,30 +1033,30 @@ export default function App() {
                   <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-[2rem] animate-in slide-in-from-top-4">
                     <h4 className="text-[10px] font-black uppercase text-emerald-800 mb-3 tracking-widest">Tóm lược thông minh ✨</h4>
                     <div className="text-sm text-emerald-900/80 leading-relaxed font-medium whitespace-pre-line">
-                      {String(selectedItem.aiSummary)}
+                      {selectedItem.aiSummary}
                     </div>
                   </div>
                 )}
 
                 <div className="mt-8 space-y-6">
-                  {Array.isArray(selectedItem.content) && selectedItem.content.map((block, i) => {
+                  {selectedItem.content?.map((block, i) => {
                     if (typeof block === 'string') {
-                      return <p key={i} className="text-[15px] text-stone-700 leading-loose font-medium">{String(block)}</p>;
+                      return <p key={i} className="text-[15px] text-stone-700 leading-loose font-medium">{block}</p>;
                     }
                     
                     switch (block.type) {
                       case 'lead':
-                        return <p key={i} className="text-base text-stone-900 leading-relaxed font-bold">{String(block.text || '')}</p>;
+                        return <p key={i} className="text-base text-stone-900 leading-relaxed font-bold">{block.text}</p>;
                       case 'paragraph':
-                        return <p key={i} className="text-[15px] text-stone-700 leading-loose font-medium">{String(block.text || '')}</p>;
+                        return <p key={i} className="text-[15px] text-stone-700 leading-loose font-medium">{block.text}</p>;
                       case 'subheading':
-                        return <h3 key={i} className="text-xl font-black text-stone-900 mt-10 mb-4 border-b border-stone-100 pb-2">{String(block.text || '')}</h3>;
+                        return <h3 key={i} className="text-xl font-black text-stone-900 mt-10 mb-4 border-b border-stone-100 pb-2">{block.text}</h3>;
                       case 'quote':
                         return (
                           <blockquote key={i} className="my-8 p-6 bg-emerald-50/50 border-l-4 border-emerald-500 rounded-2xl relative shadow-sm">
                             <Quote size={24} className="text-emerald-200 absolute top-4 right-4" />
-                            <p className="text-[15px] italic text-emerald-900/80 font-medium relative z-10">"{String(block.text || '')}"</p>
-                            {block.author && <footer className="mt-3 text-xs font-bold text-emerald-700 uppercase tracking-widest flex items-center gap-2">— {String(block.author)}</footer>}
+                            <p className="text-[15px] italic text-emerald-900/80 font-medium relative z-10">"{block.text}"</p>
+                            {block.author && <footer className="mt-3 text-xs font-bold text-emerald-700 uppercase tracking-widest flex items-center gap-2">— {block.author}</footer>}
                           </blockquote>
                         );
                       default:
@@ -847,18 +1070,18 @@ export default function App() {
                 <div className="text-center pt-4">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-stone-100 rounded-full mb-4">
                     <MapPin size={12} className="text-stone-400" />
-                    <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest">{String(selectedItem.province || selectedItem.market || '')}</p>
+                    <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest">{selectedItem.province || selectedItem.market}</p>
                   </div>
                   
                   <div className="flex items-baseline justify-center gap-2">
-                    <h1 className="text-6xl font-black text-stone-900 tracking-tighter">{Number(selectedItem.price || 0).toLocaleString()}</h1>
-                    <span className="text-xl font-bold text-stone-400">{String(selectedItem.unit || 'đ/kg')}</span>
+                    <h1 className="text-6xl font-black text-stone-900 tracking-tighter">{selectedItem.price?.toLocaleString()}</h1>
+                    <span className="text-xl font-bold text-stone-400">{selectedItem.unit || 'đ/kg'}</span>
                   </div>
                   
                   <div className="flex items-center justify-center gap-3 mt-6">
                     <div className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-black shadow-sm border ${selectedItem.change < 0 ? 'bg-red-50 border-red-100 text-red-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
                       {selectedItem.change < 0 ? <TrendingDown size={16} /> : <TrendingUp size={16} />}
-                      {Math.abs(Number(selectedItem.change || 0)).toLocaleString()}đ
+                      {Math.abs(selectedItem.change || 0).toLocaleString()}đ
                     </div>
                     <div className="inline-flex items-center gap-1.5 px-4 py-2 bg-stone-50 border border-stone-200 rounded-2xl text-[11px] font-black text-stone-500 uppercase tracking-widest">
                       Xu hướng: {selectedItem.trend === 'Bullish' ? 'Tăng' : selectedItem.trend === 'Bearish' ? 'Giảm' : 'Đi ngang'}
@@ -869,11 +1092,11 @@ export default function App() {
                 <div className="grid grid-cols-2 gap-3 mt-2">
                   <div className="p-4 bg-white border border-stone-100 rounded-3xl shadow-sm flex flex-col items-center justify-center">
                     <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-1">Đỉnh 30 ngày</p>
-                    <p className="text-xl font-black text-stone-800">{Number(selectedItem.high30d || 0).toLocaleString()}</p>
+                    <p className="text-xl font-black text-stone-800">{selectedItem.high30d?.toLocaleString()}</p>
                   </div>
                   <div className="p-4 bg-white border border-stone-100 rounded-3xl shadow-sm flex flex-col items-center justify-center">
                     <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-1">Đáy 30 ngày</p>
-                    <p className="text-xl font-black text-stone-800">{Number(selectedItem.low30d || 0).toLocaleString()}</p>
+                    <p className="text-xl font-black text-stone-800">{selectedItem.low30d?.toLocaleString()}</p>
                   </div>
                 </div>
 
@@ -892,7 +1115,7 @@ export default function App() {
                       <h4 className="text-[10px] font-black uppercase text-emerald-400 tracking-widest">Dự báo ngắn hạn ✨</h4>
                     </div>
                     <p className="text-xs text-stone-300 italic leading-relaxed">
-                      "{String(selectedItem.aiPrediction)}"
+                      "{selectedItem.aiPrediction}"
                     </p>
                   </div>
                 )}
@@ -903,12 +1126,12 @@ export default function App() {
                      <Calendar size={14} className="text-stone-300"/>
                   </div>
                   <div className="h-40 w-full flex items-end justify-between gap-2 px-1">
-                    {Array.isArray(selectedItem.history) && selectedItem.history.map((h, i) => (
+                    {selectedItem.history?.map((h, i) => (
                       <div key={i} className="flex flex-col items-center flex-1 gap-2 h-full justify-end group">
                         <div className="text-[10px] font-black text-stone-500 mb-1 opacity-80 group-hover:opacity-100 group-hover:text-stone-900 transition-colors">
-                           {(Number(h)/1000).toFixed(1)}
+                           {(h/1000).toFixed(1)}
                         </div>
-                        <div className={`w-full rounded-t-xl transition-all duration-1000 ease-out ${selectedItem.change < 0 ? 'bg-red-400/40 group-hover:bg-red-400/60' : 'bg-emerald-400/40 group-hover:bg-emerald-400/60'}`} style={{ height: `${((Number(h) - Math.min(...selectedItem.history)) / (Math.max(...selectedItem.history) - Math.min(...selectedItem.history) || 1) * 60) + 15}%` }}></div>
+                        <div className={`w-full rounded-t-xl transition-all duration-1000 ease-out ${selectedItem.change < 0 ? 'bg-red-400/40 group-hover:bg-red-400/60' : 'bg-emerald-400/40 group-hover:bg-emerald-400/60'}`} style={{ height: `${((h - Math.min(...selectedItem.history)) / (Math.max(...selectedItem.history) - Math.min(...selectedItem.history) || 1) * 60) + 15}%` }}></div>
                         <span className="text-[9px] font-bold text-stone-400 mt-1">T{i+1}</span>
                       </div>
                     ))}
@@ -923,7 +1146,7 @@ export default function App() {
                     <h4 className="text-[11px] font-black uppercase tracking-widest text-stone-800">Phân tích thị trường</h4>
                   </div>
                   <p className="text-[14px] text-stone-600 leading-relaxed relative z-10 font-medium">
-                    {String(selectedItem.analysis || '')}
+                    {selectedItem.analysis}
                   </p>
                 </div>
               </>
@@ -934,21 +1157,11 @@ export default function App() {
     );
   };
 
-  // Nếu CSS chưa tải xong, hiển thị màn hình chờ mượt mà
-  if (!isSystemReady) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100vw', backgroundColor: '#fafaf9', fontFamily: 'system-ui, sans-serif', color: '#047857' }}>
-        <div style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '8px' }}>Coffee Intel Pro</div>
-        <div style={{ fontSize: '0.875rem', opacity: 0.7 }}>Đang khởi tạo tài nguyên hệ thống...</div>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-md mx-auto bg-stone-50 min-h-screen relative font-sans text-stone-900 select-none overflow-x-hidden">
       {toast && (
-        <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[150] bg-stone-900 text-white px-6 py-3.5 rounded-full text-xs font-black shadow-2xl flex items-center gap-3 border border-white/10 animate-in fade-in slide-in-from-top-4">
-          <CheckCircle2 size={16} className="text-emerald-400" /> {String(toast)}
+        <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[150] bg-stone-900 text-white px-6 py-3.5 rounded-full text-xs font-black shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 border border-white/10">
+          <CheckCircle2 size={16} className="text-emerald-400" /> {toast}
         </div>
       )}
 
@@ -963,9 +1176,10 @@ export default function App() {
           <h1 className="text-3xl font-black text-stone-900 leading-none">
             {activeTab === 'dashboard' ? 'Thị Trường' : activeTab === 'brazil' ? 'Báo Cáo' : 'Tin Tức'}
           </h1>
-          <p className="text-[9px] text-emerald-600 font-black tracking-widest uppercase mt-2 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Gemini AI Intelligence ✨
-          </p>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+            <p className="text-[9px] text-emerald-600 font-black tracking-widest uppercase">Gemini AI Enhanced ✨</p>
+          </div>
         </div>
         <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden p-1 shrink-0">
           <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || 'guest'}`} className="w-full h-full object-cover bg-stone-50 rounded-xl" alt="Profile" />
@@ -973,21 +1187,21 @@ export default function App() {
       </header>
 
       <main className="px-8 pt-6 pb-28 relative z-10">
-        {activeTab === 'dashboard' ? renderDashboardView() : activeTab === 'brazil' ? renderBrazilView() : renderNewsView()}
+        {activeTab === 'dashboard' ? <DashboardView /> : activeTab === 'brazil' ? <BrazilView /> : <NewsView />}
       </main>
 
-      {renderDetailOverlay()}
+      <DetailOverlay />
 
       <nav className="fixed bottom-8 left-8 right-8 h-20 bg-white/90 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-white/50 flex items-center justify-around px-4 z-50 max-w-sm mx-auto">
-        <button onClick={() => handleTabChange('dashboard')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'dashboard' ? 'text-emerald-600 scale-110' : 'text-stone-300'}`}>
+        <button onClick={() => handleTabChange('dashboard')} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'dashboard' ? 'text-emerald-600 scale-110' : 'text-stone-300'}`}>
           <div className={`p-2 rounded-xl ${activeTab === 'dashboard' ? 'bg-emerald-50' : ''}`}><BarChart3 size={24} /></div>
           <span className="text-[8px] font-black uppercase tracking-tighter">Giá cả</span>
         </button>
-        <button onClick={() => handleTabChange('brazil')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'brazil' ? 'text-emerald-600 scale-110' : 'text-stone-300'}`}>
+        <button onClick={() => handleTabChange('brazil')} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'brazil' ? 'text-emerald-600 scale-110' : 'text-stone-300'}`}>
           <div className={`p-2 rounded-xl ${activeTab === 'brazil' ? 'bg-emerald-50' : ''}`}><Globe size={24} /></div>
           <span className="text-[8px] font-black uppercase tracking-tighter">Brazil</span>
         </button>
-        <button onClick={() => handleTabChange('news')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'news' ? 'text-emerald-600 scale-110' : 'text-stone-300'}`}>
+        <button onClick={() => handleTabChange('news')} className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${activeTab === 'news' ? 'text-emerald-600 scale-110' : 'text-stone-300'}`}>
           <div className={`p-2 rounded-xl ${activeTab === 'news' ? 'bg-emerald-50' : ''}`}><Newspaper size={24} /></div>
           <span className="text-[8px] font-black uppercase tracking-tighter">Tin tức</span>
         </button>
