@@ -142,6 +142,7 @@ const generateAutoHotNews = () => {
 };
 
 export default function App() {
+  const [isSystemReady, setIsSystemReady] = useState(false);
   const [supabaseClient, setSupabaseClient] = useState(null);
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -168,32 +169,48 @@ export default function App() {
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState(null);
 
-  // --- Initialize Scripts ---
+  // --- Initialize Scripts & Ensure Environment is Ready ---
   useEffect(() => {
-    if (!document.getElementById('tailwind-script')) {
+    let twReady = !!document.getElementById('tailwind-script');
+    let sbReady = !!window.supabase;
+
+    const checkAndSetReady = () => {
+      if (twReady && sbReady) setIsSystemReady(true);
+    };
+
+    if (!twReady) {
       const twScript = document.createElement('script');
       twScript.id = 'tailwind-script';
       twScript.src = "https://cdn.tailwindcss.com";
+      twScript.onload = () => { twReady = true; checkAndSetReady(); };
+      twScript.onerror = () => { twReady = true; checkAndSetReady(); }; // Fallback if blocked
       document.head.appendChild(twScript);
     }
-    if (!document.getElementById('supabase-script')) {
+
+    if (!sbReady && !document.getElementById('supabase-script')) {
       const sbScript = document.createElement('script');
       sbScript.id = 'supabase-script';
       sbScript.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
-      sbScript.async = true;
-      sbScript.onload = () => {
+      sbScript.onload = () => { 
+        sbReady = true; 
         if (supabaseUrl && supabaseKey && window.supabase) {
-          const client = window.supabase.createClient(supabaseUrl, supabaseKey);
-          setSupabaseClient(client);
+          setSupabaseClient(window.supabase.createClient(supabaseUrl, supabaseKey));
         }
+        checkAndSetReady(); 
       };
+      sbScript.onerror = () => { sbReady = true; checkAndSetReady(); };
       document.head.appendChild(sbScript);
+    } else if (sbReady) {
+      if (supabaseUrl && supabaseKey && !supabaseClient) {
+        setSupabaseClient(window.supabase.createClient(supabaseUrl, supabaseKey));
+      }
+      checkAndSetReady();
     }
   }, []);
 
   // --- Auth ---
   useEffect(() => {
-    if (!supabaseClient) return;
+    if (!isSystemReady || !supabaseClient) return;
     const initAuth = async () => {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) setUser(session.user);
@@ -207,11 +224,11 @@ export default function App() {
       setUser(session?.user ?? null);
     });
     return () => authListener.subscription.unsubscribe();
-  }, [supabaseClient]);
+  }, [supabaseClient, isSystemReady]);
 
   // --- Fetch Data & Realtime ---
   useEffect(() => {
-    if (!supabaseClient || !user) return;
+    if (!isSystemReady || !supabaseClient || !user) return;
     const fetchInitialData = async () => {
       const { data: mData } = await supabaseClient.from('market_data').select('*').eq('id', 'latest').single();
       if (mData?.prices_json) {
@@ -248,7 +265,7 @@ export default function App() {
         }
       }).subscribe();
     return () => { supabaseClient.removeChannel(channel); };
-  }, [supabaseClient, user]);
+  }, [supabaseClient, user, isSystemReady]);
 
   const showToast = (msg) => {
     setToast(String(msg));
@@ -888,6 +905,16 @@ export default function App() {
       </div>
     );
   };
+
+  // Nếu CSS chưa tải xong, hiển thị màn hình chờ mượt mà
+  if (!isSystemReady) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100vw', backgroundColor: '#fafaf9', fontFamily: 'system-ui, sans-serif', color: '#047857' }}>
+        <div style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '8px' }}>Coffee Intel Pro</div>
+        <div style={{ fontSize: '0.875rem', opacity: 0.7 }}>Đang khởi tạo tài nguyên hệ thống...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto bg-stone-50 min-h-screen relative font-sans text-stone-900 select-none overflow-x-hidden">
