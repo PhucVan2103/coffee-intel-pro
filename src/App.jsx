@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   TrendingUp, TrendingDown, Info, CloudSun, Globe, 
   MapPin, Calendar, BarChart3, AlertTriangle, MessageSquare,
@@ -7,11 +7,8 @@ import {
   Droplets, Wind, Thermometer, User, ThumbsUp, Send, Gauge, FileText, Sparkles, BrainCircuit, Quote
 } from 'lucide-react';
 
-// --- Cấu hình API Gemini & Supabase ---
-// Vui lòng điền trực tiếp API Key và Supabase thông tin vào đây
+// --- Gemini API Setup ---
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL; 
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân tích thị trường cà phê Việt Nam và thế giới.", isJson = false) => {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
@@ -44,6 +41,10 @@ const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân
     }
   }
 };
+
+// --- Supabase Configuration ---
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL; 
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // --- Dữ liệu Khởi tạo ---
 const INITIAL_PRICES = {
