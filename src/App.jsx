@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 // --- Gemini API Setup ---
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;  
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
 
 const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân tích thị trường cà phê Việt Nam và thế giới.", isJson = false) => {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
@@ -23,7 +23,8 @@ const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân
     payload.generationConfig = { responseMimeType: "application/json" };
   }
 
-  const maxRetries = 5;
+  // TỐI ƯU 1: Giảm Max Retries để tránh treo app lâu khi rớt mạng
+  const maxRetries = 2;
   for (let i = 0; i < maxRetries; i++) {
     try {
       const response = await fetch(url, {
@@ -95,7 +96,7 @@ const INITIAL_PRICES = {
     { id: 'newyork', market: 'New York (Arabica)', price: 212.45, unit: 'cts/lb', change: +1.2, history: [205.1, 208.4, 210.2, 215.0, 213.5, 211.2, 212.45], high30d: 225.0, low30d: 198.5, trend: 'Bullish', analysis: 'Lo ngại về thời tiết tại Brazil.' },
   ],
   brazil: {
-    harvestProgress: 15, expectedOutput: '70.7M bao', outputChange: -2.3, weatherStatus: 'Khô hạn kéo dài',
+    harvestProgress: 15, expectedOutput: '70.7M', outputChange: -2.3, weatherStatus: 'Khô hạn kéo dài',
     riskLevel: 'Nghiêm trọng', sentiment: 'Bullish', confidence: 88,
     portStatus: 'Kẹt cảng 12 ngày', soilMoisture: '28%', temperatureAnomaly: '+2.5°C',
     regions: [
@@ -328,13 +329,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const TWO_HOURS = 2 * 60 * 60 * 1000; 
+    const ONE_HOURS = 1 * 60 * 60 * 1000; 
     const interval = setInterval(() => {
       setHotNews(prev => {
         const newHot = generateAutoHotNews();
         return [newHot, ...prev.slice(0, 2)];
       });
-    }, TWO_HOURS);
+    }, ONE_HOURS);
     return () => clearInterval(interval);
   }, []);
 
@@ -343,7 +344,6 @@ export default function App() {
     setTimeout(() => setToast(null), 2500);
   };
 
-  // --- Handle Tab Switch and Auto Refresh ---
   const handleTabChange = async (tab) => {
     if (activeTab !== tab) {
       setActiveTab(tab);
@@ -360,7 +360,6 @@ export default function App() {
         setLastUpdate(new Date().toLocaleTimeString('vi-VN'));
       }
     } else {
-      // Local refresh fallback
       const currentPrices = pricesRef.current || INITIAL_PRICES;
       const newDomestic = (currentPrices.domestic || []).map(p => ({
         ...p, 
@@ -377,7 +376,7 @@ export default function App() {
     setIsRefreshing(true);
     
     if (!isAutoLoad) {
-      showToast(apiKey ? "Đang tìm kiếm giá thực tế trên Internet..." : "Đang làm mới giá (Chế độ Local)...");
+      showToast(apiKey ? "AI đang duyệt web thu thập dữ liệu..." : "Đang làm mới giá (Chế độ Local)...");
     } else if (apiKey) {
       showToast("Tự động đồng bộ dữ liệu mới nhất ✨");
     }
@@ -399,27 +398,16 @@ export default function App() {
       updatedPrices = generateFallbackData();
     } else {
       try {
-        const prompt = `Hãy tìm kiếm trên Internet giá cà phê thực tế mới nhất hôm nay tại Việt Nam và thế giới (London, New York).
-        Trích xuất dữ liệu và trả về đúng định dạng JSON này (CHỈ TRẢ VỀ JSON, KHÔNG CÓ BẤT KỲ TEXT NÀO KHÁC):
+        // TỐI ƯU 2: Nén Prompt ngắn nhất có thể, yêu cầu AI trả Raw JSON ngay lập tức để tiết kiệm token
+        const prompt = `Bạn là bot lấy dữ liệu. Hãy duyệt web để lấy GIÁ CÀ PHÊ MỚI NHẤT HÔM NAY (Đắk Lắk, Lâm Đồng, Gia Lai, Đắk Nông, London, New York).
+        BỎ QUA GIẢI THÍCH. TRẢ VỀ NGAY LẬP TỨC JSON SAU:
         {
-          "domestic": [
-            {"id": "daklak", "price": <giá số nguyên VD: 105000>, "change": <số chênh lệch so với hôm qua>, "trend": "Bullish/Bearish/Neutral", "analysis": "Nhận định ngắn từ tin tức mới nhất"},
-            {"id": "lamdong", "price": <số>, "change": <số>, "trend": "...", "analysis": "..."},
-            {"id": "gialai", "price": <số>, "change": <số>, "trend": "...", "analysis": "..."},
-            {"id": "daknong", "price": <số>, "change": <số>, "trend": "...", "analysis": "..."}
-          ],
-          "global": [
-            {"id": "london", "price": <số USD>, "change": <số>, "trend": "...", "analysis": "..."},
-            {"id": "newyork", "price": <số Cent>, "change": <số>, "trend": "...", "analysis": "..."}
-          ],
-          "aiInsights": {
-            "marketSentiment": "Tên xu hướng ngắn gọn",
-            "sentimentScore": <điểm 0-100>,
-            "summary": "Tóm tắt thị trường hôm nay dựa trên dữ liệu thực tế"
-          }
+          "domestic": [{"id": "daklak", "price": 105000, "change": 1000, "trend": "Bullish", "analysis": "ngắn gọn"}, {"id": "lamdong", "price": 104000, "change": 500, "trend": "Bullish", "analysis": "ngắn gọn"}, {"id": "gialai", "price": 104500, "change": 500, "trend": "Bullish", "analysis": "ngắn gọn"}, {"id": "daknong", "price": 105000, "change": 1000, "trend": "Bullish", "analysis": "ngắn gọn"}],
+          "global": [{"id": "london", "price": 3200, "change": 15, "trend": "Bullish", "analysis": "ngắn gọn"}, {"id": "newyork", "price": 210.5, "change": 2.1, "trend": "Bullish", "analysis": "ngắn gọn"}],
+          "aiInsights": {"marketSentiment": "Tích cực", "sentimentScore": 85, "summary": "tóm tắt thị trường"}
         }`;
         
-        const jsonStr = await callGeminiAPI(prompt, "Bạn là bot lấy dữ liệu thực tế mới nhất.", true);
+        const jsonStr = await callGeminiAPI(prompt, "Bạn là máy lấy dữ liệu JSON tốc độ cao.", true);
         const realData = JSON.parse(jsonStr);
 
         const newDomestic = currentPrices.domestic.map(old => {
@@ -441,7 +429,7 @@ export default function App() {
           aiInsights: { ...currentPrices.aiInsights, ...realData.aiInsights } 
         };
       } catch (e) {
-        console.warn("Dùng dữ liệu dự phòng do chưa lấy được giá thực tế.");
+        console.warn("Dùng dữ liệu dự phòng do lỗi/chậm lấy giá thực tế.");
         updatedPrices = generateFallbackData();
       }
     }
@@ -489,7 +477,6 @@ export default function App() {
     } catch (e) { showToast("Lỗi lưu dữ liệu"); }
   };
 
-  // --- Gemini Logic ---
   const handleAiMarketAnalysis = async () => {
     if (!apiKey) { showToast("Vui lòng cấu hình Gemini API Key"); return; }
     setIsAiAnalyzing(true);
@@ -537,7 +524,6 @@ export default function App() {
     }
   };
 
-  // --- Fixed Sparkline SVG ---
   const renderSparkline = (history = [], isNegative) => {
     if (!history || history.length < 2) return null;
     const min = Math.min(...history);
@@ -581,7 +567,7 @@ export default function App() {
 
   // --- UI Views ---
   const DashboardView = () => (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20 px-1">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20 px-1 relative">
       <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-[2.5rem] p-6 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10">
           <div className="flex justify-between items-center mb-4">
@@ -635,51 +621,63 @@ export default function App() {
         </button>
       </div>
 
-      <section>
-        <h4 className="text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
-          <MapPin size={12} className="text-emerald-500" /> GIÁ NỘI ĐỊA (VN)
-        </h4>
-        <div className="grid grid-cols-2 gap-3">
-          {prices?.domestic?.map(item => (
-            <div key={item.id} onClick={() => setSelectedItem({...item, type: 'price'})} className="bg-white p-4 rounded-3xl shadow-sm border border-stone-100 active:scale-95 transition-all cursor-pointer">
-              <div className="flex justify-between items-start">
-                <p className="text-[9px] font-black text-stone-400 uppercase">{item.province}</p>
-                {renderSparkline(item.history, item.change < 0)}
-              </div>
-              <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-xl font-black text-stone-900">{item.price?.toLocaleString()}</span>
-                <span className="text-[9px] text-stone-400 font-bold uppercase">đ/kg</span>
-              </div>
-              <div className={`flex items-center gap-1 text-[10px] font-black mt-1 ${item.change < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
-                {item.change < 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
-                {Math.abs(item.change || 0).toLocaleString()}đ
-              </div>
+      {/* TỐI ƯU 3: Lớp phủ Loading Scanner khi Refresh */}
+      <div className="relative">
+        {isRefreshing && (
+          <div className="absolute inset-0 z-20 bg-white/60 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center animate-in fade-in duration-300">
+            <div className="bg-white p-4 rounded-2xl shadow-xl flex flex-col items-center border border-emerald-100">
+              <RotateCw size={24} className="animate-spin text-emerald-500 mb-2" />
+              <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest animate-pulse">AI Đang Quét Dữ Liệu...</span>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        )}
 
-      <section>
-        <h4 className="text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
-          <Globe size={12} className="text-blue-500" /> SÀN THẾ GIỚI
-        </h4>
-        <div className="space-y-3">
-          {prices?.global?.map(item => (
-            <div key={item.id} onClick={() => setSelectedItem({...item, type: 'price'})} className="bg-stone-900 p-4 rounded-[2rem] flex justify-between items-center active:bg-stone-800 transition-all cursor-pointer">
-              <div className="flex-1">
-                <p className="text-stone-500 text-[9px] font-black uppercase">{item.market}</p>
-                <p className="text-xl font-black text-white mt-1">{item.price?.toLocaleString()} <span className="text-[10px] text-stone-500 font-bold">{item.unit}</span></p>
-              </div>
-              <div className="flex items-center gap-4">
-                {renderSparkline(item.history, item.change < 0)}
-                <div className={`px-3 py-1 rounded-full text-[10px] font-black ${item.change < 0 ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                  {item.change > 0 ? '+' : ''}{item.change}
+        <section>
+          <h4 className="text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+            <MapPin size={12} className="text-emerald-500" /> GIÁ NỘI ĐỊA (VN)
+          </h4>
+          <div className="grid grid-cols-2 gap-3">
+            {prices?.domestic?.map(item => (
+              <div key={item.id} onClick={() => setSelectedItem({...item, type: 'price'})} className="bg-white p-4 rounded-3xl shadow-sm border border-stone-100 active:scale-95 transition-all cursor-pointer">
+                <div className="flex justify-between items-start">
+                  <p className="text-[9px] font-black text-stone-400 uppercase">{item.province}</p>
+                  {renderSparkline(item.history, item.change < 0)}
+                </div>
+                <div className="flex items-baseline gap-1 mt-2">
+                  <span className="text-xl font-black text-stone-900">{item.price?.toLocaleString()}</span>
+                  <span className="text-[9px] text-stone-400 font-bold uppercase">đ/kg</span>
+                </div>
+                <div className={`flex items-center gap-1 text-[10px] font-black mt-1 ${item.change < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                  {item.change < 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
+                  {Math.abs(item.change || 0).toLocaleString()}đ
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-6">
+          <h4 className="text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+            <Globe size={12} className="text-blue-500" /> SÀN THẾ GIỚI
+          </h4>
+          <div className="space-y-3">
+            {prices?.global?.map(item => (
+              <div key={item.id} onClick={() => setSelectedItem({...item, type: 'price'})} className="bg-stone-900 p-4 rounded-[2rem] flex justify-between items-center active:bg-stone-800 transition-all cursor-pointer">
+                <div className="flex-1">
+                  <p className="text-stone-500 text-[9px] font-black uppercase">{item.market}</p>
+                  <p className="text-xl font-black text-white mt-1">{item.price?.toLocaleString()} <span className="text-[10px] text-stone-500 font-bold">{item.unit}</span></p>
+                </div>
+                <div className="flex items-center gap-4">
+                  {renderSparkline(item.history, item.change < 0)}
+                  <div className={`px-3 py-1 rounded-full text-[10px] font-black ${item.change < 0 ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                    {item.change > 0 ? '+' : ''}{item.change}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 
@@ -872,10 +870,12 @@ export default function App() {
   const DetailOverlay = () => {
     if (!selectedItem) return null;
     const isNews = selectedItem.type === 'news';
+    
+    // TỐI ƯU 4: Fixed CSS Flexbox để đảm bảo nền trắng che kín 100% màn hình, sửa lỗi xuyên thấu
     return (
-      <div className="fixed inset-0 z-[100] bg-white overflow-y-auto animate-in slide-in-from-bottom duration-300">
-        <div className="max-w-md mx-auto min-h-screen bg-white pb-20 shadow-2xl relative">
-          <header className="sticky top-0 bg-white/80 backdrop-blur-md p-6 flex justify-between items-center z-20 border-b border-stone-50">
+      <div className="fixed inset-0 z-[100] bg-stone-900/40 backdrop-blur-sm overflow-y-auto flex flex-col items-center animate-in fade-in duration-200">
+        <div className="w-full max-w-md bg-white min-h-screen pb-20 shadow-2xl relative animate-in slide-in-from-bottom-8 duration-300">
+          <header className="sticky top-0 bg-white/90 backdrop-blur-md p-6 flex justify-between items-center z-20 border-b border-stone-50">
             <button onClick={() => setSelectedItem(null)} className="p-2.5 bg-stone-100 rounded-2xl text-stone-600 active:scale-90 transition-all"><ChevronLeft size={20} /></button>
             <div className="flex gap-2">
               {isNews && (
@@ -886,7 +886,7 @@ export default function App() {
               <button className="p-2.5 bg-stone-100 rounded-2xl text-stone-600"><Share2 size={20} /></button>
             </div>
           </header>
-          <main className="px-6 py-6 space-y-8 relative z-10 bg-white min-h-full">
+          <main className="px-6 py-6 space-y-8 relative z-10 bg-white">
             {isNews ? (
               <>
                 <div className="relative">
