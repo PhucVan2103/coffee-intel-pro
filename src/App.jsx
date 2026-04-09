@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 // --- Gemini API Setup ---
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
+cconst apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
 
 const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân tích thị trường cà phê Việt Nam và thế giới.", isJson = false) => {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
@@ -275,12 +275,21 @@ export default function App() {
     }
   }, [activeTab, selectedItem]);
 
-  // Auto update news every 1 hour
+  // Auto update news
   useEffect(() => {
-    const ONE_HOUR = 60 * 60 * 1000;
+    // TẠM CHỈNH THÀNH 15 GIÂY ĐỂ BẠN DỄ TEST (15 * 1000).
+    // Khi chạy thực tế, hãy đổi lại thành 1 giờ (60 * 60 * 1000).
+    const INTERVAL_TIME = 30 * 60 * 1000; 
+    
     const interval = setInterval(() => {
       setNews(prevNews => [generateAutoNews(), ...prevNews]);
-    }, ONE_HOUR);
+      
+      // Tăng giới hạn số lượng tin đang hiển thị thêm 1
+      // Để tin mới chèn lên đầu không làm ẩn mất tin cũ ở dưới cùng
+      setVisibleNewsCount(prevCount => prevCount + 1);
+      
+    }, INTERVAL_TIME);
+    
     return () => clearInterval(interval);
   }, []);
 
