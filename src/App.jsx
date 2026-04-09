@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 // --- Gemini API Setup ---
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;  
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
 
 const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân tích thị trường cà phê Việt Nam và thế giới.", isJson = false) => {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
@@ -989,8 +989,8 @@ export default function App() {
     const isNews = selectedItem.type === 'news';
     
     return (
-      <div className="fixed inset-0 z-[100] bg-stone-900/60 backdrop-blur-sm flex justify-center animate-in fade-in duration-200">
-        <div className="w-full max-w-md h-full overflow-y-auto bg-white shadow-2xl relative animate-in slide-in-from-bottom-8 duration-300 flex flex-col">
+      <div className="fixed inset-0 z-[100] bg-stone-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200 block">
+        <div className="w-full max-w-md mx-auto bg-white min-h-[100dvh] shadow-2xl relative animate-in slide-in-from-bottom-8 duration-300 flex flex-col">
           <header className="sticky top-0 bg-white/90 backdrop-blur-md p-6 flex justify-between items-center z-20 border-b border-stone-50 shrink-0">
             <button onClick={() => setSelectedItem(null)} className="p-2.5 bg-stone-100 rounded-2xl text-stone-600 active:scale-90 transition-all"><ChevronLeft size={20} /></button>
             <div className="flex gap-2">
