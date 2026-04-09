@@ -14,7 +14,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân tích thị trường cà phê Việt Nam và thế giới.", isJson = false) => {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
   
   const payload = {
     contents: [{ parts: [{ text: prompt }] }],
@@ -23,9 +23,7 @@ const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân
   };
 
   if (isJson) {
-    payload.generationConfig = { 
-      responseMimeType: "application/json"
-    };
+    payload.generationConfig = { responseMimeType: "application/json" };
   }
 
   const delays = [1000, 2000, 4000, 8000, 16000];
