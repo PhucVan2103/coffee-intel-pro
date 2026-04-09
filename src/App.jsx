@@ -14,7 +14,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân tích thị trường cà phê Việt Nam và thế giới.", isJson = false) => {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
   
   const payload = {
     contents: [{ parts: [{ text: prompt }] }],
@@ -26,34 +26,21 @@ const callGeminiAPI = async (prompt, systemPrompt = "Bạn là chuyên gia phân
     payload.generationConfig = { responseMimeType: "application/json" };
   }
 
-  const delays = [1000, 2000, 4000, 8000, 16000];
-  
-  for (let i = 0; i < 5; i++) {
+  const maxRetries = 2;
+  for (let i = 0; i < maxRetries; i++) {
     try {
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`HTTP ${response.status}: ${errorData.error?.message || 'Xác thực không thành công'}`);
-      }
-
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const result = await response.json();
-      const candidate = result.candidates?.[0];
-      const text = candidate?.content?.parts?.[0]?.text;
-      
-      const groundings = candidate?.groundingMetadata?.groundingAttributions?.map(a => ({ 
-        uri: a.web?.uri, 
-        title: a.web?.title 
-      })) || [];
-
-      return { text, groundings };
+      return result.candidates?.[0]?.content?.parts?.[0]?.text;
     } catch (err) {
-      if (i === 4) throw err;
-      await new Promise(resolve => setTimeout(resolve, delays[i]));
+      if (i === maxRetries - 1) throw err;
+      const delay = Math.pow(2, i) * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
 };
